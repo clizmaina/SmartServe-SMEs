@@ -33,7 +33,7 @@ document.addEventListener("DOMContentLoaded", function () {
             try {
 
                 const response = await fetch(
-                    "http://localhost:5501/login",
+                    "https://smartserve-smes.onrender.com/login",
                     {
                         method: "POST",
 

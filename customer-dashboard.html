@@ -799,7 +799,7 @@
       msg.textContent = 'Saving…';
 
       try {
-        const res = await fetch('http://127.0.0.1:5501/delivery-preference', {
+        const res = await fetch('https://smartserve-smes.onrender.com/delivery-preference', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
@@ -831,7 +831,7 @@
     async function loadCurrentDeliveryPref(designerId) {
       if (!window.customerId || !designerId) return;
       try {
-        const res  = await fetch(`http://127.0.0.1:5501/delivery-preference/${window.customerId}/${designerId}`, { credentials: 'include' });
+        const res  = await fetch(`https://smartserve-smes.onrender.com/delivery-preference/${window.customerId}/${designerId}`, { credentials: 'include' });
         const data = await res.json();
         const box  = document.getElementById('currentDeliveryPref');
         const det  = document.getElementById('currentDeliveryDetails');

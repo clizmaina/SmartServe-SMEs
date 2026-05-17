@@ -35,7 +35,7 @@ document.addEventListener("DOMContentLoaded", () => {
         sendOtpBtn.textContent = "Sending…";
 
         try {
-            const res  = await fetch("http://localhost:5501/send-otp", {
+            const res  = await fetch("https://smartserve-smes.onrender.com/send-otp", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",
@@ -73,7 +73,7 @@ document.addEventListener("DOMContentLoaded", () => {
         verifyOtpBtn.textContent = "Verifying…";
 
         try {
-            const res  = await fetch("http://localhost:5501/signup", {
+            const res  = await fetch("https://smartserve-smes.onrender.com/signup", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",
