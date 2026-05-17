@@ -259,31 +259,56 @@ db.query(`
   )
 `, (err) => { if (err) console.error("❌ provider_subscriptions table error:", err.message); });
 
-// ✅ Email sending via Brevo HTTP API
-// Render's free tier BLOCKS all SMTP ports (25, 465, 587) — Gmail SMTP will never work.
-// Brevo sends via HTTPS (port 443) which is always open. Free plan = 300 emails/day.
-// Sign up at https://app.brevo.com → SMTP & API → API Keys → Create a new API key
-// Then set BREVO_API_KEY in Render environment variables.
+// ✅ Email sending — tries providers in order: Resend → Brevo → Gmail SMTP
+// Resend has the best Gmail deliverability and works on Render free tier (uses port 465 HTTPS)
+// Sign up free at https://resend.com → API Keys → Create key
+// Set RESEND_API_KEY in Render environment variables
 
 const emailPass = (process.env.EMAIL_PASS || '').replace(/\s/g, '');
+const brevoKey  = process.env.BREVO_API_KEY;
+const resendKey = process.env.RESEND_API_KEY;
 
 async function sendEmail({ to, toName, subject, html }) {
-    const brevoKey = process.env.BREVO_API_KEY;
 
-    // ── Option A: Brevo HTTP API (works on Render free tier) ──────────────────
+    // ── Option A: Resend SMTP (best Gmail deliverability, works on Render) ────
+    if (resendKey) {
+        try {
+            const nodemailer = require('nodemailer');
+            const transporter = nodemailer.createTransport({
+                host: 'smtp.resend.com',
+                port: 465,
+                secure: true,
+                auth: {
+                    user: 'resend',
+                    pass: resendKey
+                }
+            });
+            const info = await transporter.sendMail({
+                from: 'SmartServe SMEs <onboarding@resend.dev>',
+                to,
+                replyTo: process.env.EMAIL_USER || 'smartstitchtech01@gmail.com',
+                subject,
+                html
+            });
+            console.log(`✅ Email sent via Resend to ${to} | id: ${info.messageId}`);
+            return { success: true };
+        } catch (err) {
+            console.error('❌ Resend error:', err.message);
+            // fall through to Brevo
+        }
+    }
+
+    // ── Option B: Brevo HTTP API ───────────────────────────────────────────────
     if (brevoKey) {
         try {
             const response = await axios.post(
                 'https://api.brevo.com/v3/smtp/email',
                 {
-                    // Use Brevo's own domain as sender — avoids Gmail blocking self-sent emails
-                    // Gmail rejects emails sent FROM a Gmail address THROUGH a third-party relay
                     sender: {
                         name: 'SmartServe SMEs',
                         email: 'noreply@smartserve.brevo.com'
                     },
                     to: [{ email: to, name: toName || to }],
-                    // Reply-to points back to the business email
                     replyTo: {
                         email: process.env.EMAIL_USER || 'smartstitchtech01@gmail.com',
                         name: 'SmartServe SMEs'
@@ -306,11 +331,11 @@ async function sendEmail({ to, toName, subject, html }) {
         } catch (err) {
             const errMsg = err.response?.data?.message || err.message;
             console.error('❌ Brevo API error:', errMsg);
-            throw new Error('Brevo: ' + errMsg);
+            // fall through to Gmail
         }
     }
 
-    // ── Option B: Gmail SMTP fallback (only works locally, not on Render free) ─
+    // ── Option C: Gmail SMTP (only works locally, blocked on Render free) ─────
     if (process.env.EMAIL_USER && emailPass) {
         const nodemailer = require('nodemailer');
         const transporter = nodemailer.createTransport({
@@ -325,18 +350,16 @@ async function sendEmail({ to, toName, subject, html }) {
         });
         const info = await transporter.sendMail({
             from: `"SmartServe SMEs" <${process.env.EMAIL_USER}>`,
-            to,
-            subject,
-            html
+            to, subject, html
         });
         console.log(`✅ Email sent via Gmail SMTP to ${to}`);
         return { success: true, messageId: info.messageId };
     }
 
-    throw new Error('No email provider configured. Set BREVO_API_KEY in Render environment variables.');
+    throw new Error('No email provider configured. Set RESEND_API_KEY in environment variables.');
 }
 
-console.log(`📧 Email provider: ${process.env.BREVO_API_KEY ? 'Brevo API ✅' : process.env.EMAIL_USER ? 'Gmail SMTP (local only)' : '⚠️ NOT CONFIGURED'}`);
+console.log(`📧 Email provider: ${resendKey ? 'Resend ✅' : brevoKey ? 'Brevo' : process.env.EMAIL_USER ? 'Gmail SMTP' : '⚠️ NONE'}`);
 
 // ✅ In-memory OTP store: { "email|businessType": { otp, expiresAt, userData } }
 const otpStore = {};
