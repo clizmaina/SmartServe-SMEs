@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cyber Cafe - Provider Dashboard</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Poppins:wght@400;500;600&display=swap');
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Poppins', sans-serif; display: flex; min-height: 100vh; background: linear-gradient(rgba(0,0,0,0.8),rgba(0,0,0,0.8)), url('https://images.unsplash.com/photo-1518770660439-4636190af475?w=1400') no-repeat center/cover fixed; color: #e0ffe0; }
+    .sidebar { width: 260px; background: rgba(0,15,0,0.98); backdrop-filter: blur(8px); height: 100vh; padding: 30px 20px; position: fixed; display: flex; flex-direction: column; box-shadow: 4px 0 20px rgba(0,255,0,0.15); border-right: 1px solid rgba(0,255,0,0.2); }
+    .sidebar h2 { font-family: 'Share Tech Mono', monospace; font-size: 1rem; color: #00ff88; text-align: center; margin-bottom: 30px; }
+    .sidebar a { display: block; color: #a0ffa0; text-decoration: none; padding: 12px 16px; margin: 6px 0; border-radius: 8px; font-weight: 500; cursor: pointer; transition: all 0.3s; font-family: 'Share Tech Mono', monospace; font-size: 0.85rem; }
+    .sidebar a:hover { background: rgba(0,255,0,0.1); color: #00ff88; transform: translateX(6px); }
+    .content { margin-left: 260px; flex: 1; padding: 40px; overflow-y: auto; }
+    .tab-content { display: none; animation: fadeIn 0.5s ease; }
+    .tab-content.active { display: block; }
+    .card { background: rgba(0,255,0,0.05); border: 1px solid rgba(0,255,0,0.2); border-radius: 12px; padding: 24px; margin-bottom: 20px; }
+    h1 { font-family: 'Share Tech Mono', monospace; font-size: 1.8rem; margin-bottom: 8px; color: #00ff88; }
+    h2 { font-family: 'Share Tech Mono', monospace; color: #00ff88; margin-bottom: 16px; }
+    p { color: #a0ffa0; line-height: 1.7; }
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 14px; margin: 20px 0; }
+    .stat-card { background: rgba(0,255,0,0.07); border: 1px solid rgba(0,255,0,0.2); border-radius: 10px; padding: 20px; text-align: center; }
+    .stat-card .num { font-size: 1.8rem; font-weight: 700; color: #00ff88; font-family: 'Share Tech Mono', monospace; }
+    .stat-card .lbl { font-size: 0.8rem; color: #80ffb0; margin-top: 4px; }
+    .pc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; margin-top: 10px; }
+    .pc-card { border-radius: 8px; padding: 14px; text-align: center; font-family: 'Share Tech Mono', monospace; font-size: 0.85rem; }
+    .pc-card.free { background: rgba(0,200,0,0.15); border: 1px solid #00cc00; color: #80ff80; }
+    .pc-card.busy { background: rgba(200,0,0,0.15); border: 1px solid #cc0000; color: #ff8080; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid rgba(0,255,0,0.1); font-size: 0.9rem; }
+    th { color: #00ff88; font-weight: 600; font-family: 'Share Tech Mono', monospace; }
+    select, input, textarea { width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid rgba(0,255,0,0.3); background: rgba(0,20,0,0.6); color: #a0ffa0; font-family: 'Poppins', sans-serif; margin-bottom: 14px; }
+    select option { color: #111; background: #fff; }
+    button { background: linear-gradient(135deg, #006600, #00aa00); color: #fff; border: none; padding: 11px 26px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s; font-family: 'Share Tech Mono', monospace; }
+    button:hover { transform: scale(1.05); box-shadow: 0 0 12px rgba(0,255,0,0.4); }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <h2>⚙️ CYBER ADMIN</h2>
+    <a onclick="showTab('overview')">📊 Overview</a>
+    <a onclick="showTab('pc-status')">💻 PC Status</a>
+    <a onclick="showTab('sessions-mgmt')">⏱️ Sessions</a>
+    <a onclick="showTab('print-queue')">🖨️ Print Queue</a>
+    <a onclick="showTab('billing')">💰 Billing</a>
+    <a onclick="showTab('clients')">👥 Clients</a>
+    <a onclick="showTab('settings')">⚙️ Settings</a>
+    <a onclick="logout()">🚪 Logout</a>
+  </div>
+
+  <div class="content">
+    <div id="overview" class="tab-content active">
+      <h1>CYBER CAFE ADMIN</h1>
+      <p>Monitor PC usage, manage sessions, and track daily revenue.</p>
+      <div class="stat-grid">
+        <div class="stat-card"><div class="num">7/10</div><div class="lbl">PCs In Use</div></div>
+        <div class="stat-card"><div class="num">14</div><div class="lbl">Sessions Today</div></div>
+        <div class="stat-card"><div class="num">KSh 2,800</div><div class="lbl">Today's Revenue</div></div>
+        <div class="stat-card"><div class="num">5</div><div class="lbl">Print Jobs</div></div>
+      </div>
+    </div>
+
+    <div id="pc-status" class="tab-content">
+      <h2>PC STATUS</h2>
+      <div class="pc-grid">
+        <div class="pc-card busy">PC 01<br>🔴 Busy<br>45 min left</div>
+        <div class="pc-card free">PC 02<br>🟢 Free</div>
+        <div class="pc-card busy">PC 03<br>🔴 Busy<br>12 min left</div>
+        <div class="pc-card busy">PC 04<br>🔴 Busy<br>1h 20m left</div>
+        <div class="pc-card free">PC 05<br>🟢 Free</div>
+        <div class="pc-card busy">PC 06<br>🔴 Busy<br>30 min left</div>
+        <div class="pc-card busy">PC 07<br>🔴 Busy<br>55 min left</div>
+        <div class="pc-card free">PC 08<br>🟢 Free</div>
+        <div class="pc-card busy">PC 09<br>🔴 Busy<br>10 min left</div>
+        <div class="pc-card busy">PC 10<br>🔴 Busy<br>2h left</div>
+      </div>
+    </div>
+
+    <div id="sessions-mgmt" class="tab-content">
+      <h2>ACTIVE SESSIONS</h2>
+      <div class="card">
+        <table>
+          <tr><th>PC</th><th>Client</th><th>Start</th><th>Duration</th><th>Cost</th><th>Action</th></tr>
+          <tr><td>PC 01</td><td>John M.</td><td>1:00 PM</td><td>1 hr</td><td>KSh 30</td><td><button style="padding:5px 10px;font-size:0.75rem;">End</button></td></tr>
+          <tr><td>PC 04</td><td>Guest</td><td>12:30 PM</td><td>2 hrs</td><td>KSh 55</td><td><button style="padding:5px 10px;font-size:0.75rem;">End</button></td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div id="print-queue" class="tab-content">
+      <h2>PRINT QUEUE</h2>
+      <div class="card">
+        <table>
+          <tr><th>#</th><th>Client</th><th>Type</th><th>Pages</th><th>Cost</th><th>Status</th></tr>
+          <tr><td>1</td><td>Alice K.</td><td>B&W Print</td><td>5</td><td>KSh 50</td><td>🖨️ Printing</td></tr>
+          <tr><td>2</td><td>Bob N.</td><td>Colour Print</td><td>2</td><td>KSh 60</td><td>🕐 Queued</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div id="billing" class="tab-content">
+      <h2>BILLING & REVENUE</h2>
+      <div class="stat-grid">
+        <div class="stat-card"><div class="num">KSh 2,800</div><div class="lbl">Today</div></div>
+        <div class="stat-card"><div class="num">KSh 16,400</div><div class="lbl">This Week</div></div>
+        <div class="stat-card"><div class="num">KSh 68,000</div><div class="lbl">This Month</div></div>
+      </div>
+    </div>
+
+    <div id="clients" class="tab-content">
+      <h2>REGISTERED CLIENTS</h2>
+      <p style="margin-bottom:16px;color:#ddd;">Customers who selected you. Click "Serve Now" to set one as active.</p>
+      <div id="active-customer-banner" style="display:none;background:rgba(100,255,100,0.15);border:1px solid #80ff80;border-radius:10px;padding:14px 20px;margin-bottom:16px;color:#b3ffb3;"></div>
+      <div id="customer-queue-list"><p style="color:#ddd;">Loading your customer queue...</p></div>
+    </div>
+
+    <div id="settings" class="tab-content">
+      <h2>SETTINGS</h2>
+      <div class="card">
+        <label>Hourly Rate (KSh)</label><input type="number" value="30">
+        <label>Number of PCs</label><input type="number" value="10">
+        <label>B&W Print Rate per Page (KSh)</label><input type="number" value="10">
+        <label>Colour Print Rate per Page (KSh)</label><input type="number" value="30">
+        <button>Save Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const BASE = 'http://localhost:5501';
+
+    // Auth guard — runs immediately on page load
+    (function() {
+      if (!localStorage.getItem('user')) {
+        window.location.replace('business-select.html');
+      }
+      history.replaceState(null, '', window.location.href);
+    })();
+
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    let activeCustomerId = null;
+
+    function showTab(id) {
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      if (id === 'clients') loadCustomerQueue();
+    }
+
+    function loadCustomerQueue() {
+      const queueEl = document.getElementById('customer-queue-list');
+      queueEl.innerHTML = '<p style="color:#a0ffa0;">Loading your customer queue...</p>';
+      fetch(`${BASE}/my-customers/${user.id}`, { credentials: 'include' })
+        .then(r => r.json())
+        .then(customers => {
+          if (!customers.length) {
+            queueEl.innerHTML = '<p style="color:#a0ffa0;">No customers have selected you yet.</p>';
+            return;
+          }
+          queueEl.innerHTML = customers.map(c => `
+            <div style="background:rgba(0,255,0,0.07);border:1px solid rgba(0,255,0,0.2);border-radius:10px;padding:18px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+              <div>
+                <div style="font-weight:600;color:#00ff88;">${c.name}</div>
+                <div style="font-size:0.85rem;color:#80ffb0;">${c.email || ''}</div>
+              </div>
+              <button id="serve-btn-${c.id}" onclick="serveCustomer(${c.id}, '${(c.name||'').replace(/'/g,"\\'")}', this)">Serve Now</button>
+            </div>
+          `).join('');
+        })
+        .catch(() => {
+          queueEl.innerHTML = '<p style="color:#ffaaaa;">Failed to load customer queue. Please try again.</p>';
+        });
+    }
+
+    function serveCustomer(customerId, customerName, btn) {
+      activeCustomerId = customerId;
+      localStorage.setItem('activeCustomerId', customerId);
+      localStorage.setItem('activeCustomerName', customerName);
+      const banner = document.getElementById('active-customer-banner');
+      banner.style.display = 'block';
+      banner.textContent = '🟢 Now serving: ' + customerName;
+      document.querySelectorAll('[id^="serve-btn-"]').forEach(b => {
+        b.textContent = 'Serve Now';
+        b.disabled = false;
+      });
+      btn.textContent = '✅ Serving';
+      btn.disabled = true;
+    }
+
+    function logout() {
+      localStorage.removeItem('user');
+      localStorage.removeItem('businessType');
+      localStorage.removeItem('activeCustomerId');
+      localStorage.removeItem('activeCustomerName');
+      window.location.replace('business-select.html');
+    }
+  </script>
+  <script src="lang.js"></script>
+</body>
+</html>

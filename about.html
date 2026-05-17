@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About Us – SmartServe SMEs</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Poppins:wght@300;400;500;600&display=swap');
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --green:#006600; --gold:#d4a843; --red:#bb0000; --dark:#0d0d0d; --light:#f9f6f0; }
+    body { font-family: 'Poppins', sans-serif; color: #1a1a1a; background: #fff; }
+
+    .flag-stripe { height: 5px; background: linear-gradient(90deg, #006600 33%, #000 33%, #000 66%, #bb0000 66%); }
+
+    nav {
+      position: fixed; top: 5px; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 6%; background: rgba(0,0,0,0.88); backdrop-filter: blur(10px);
+    }
+    .nav-brand { font-family: 'Playfair Display', serif; font-size: 1.4rem; color: var(--gold); }
+    .nav-brand span { color: #fff; }
+    .nav-links { display: flex; gap: 10px; flex-wrap: wrap; }
+    .nav-links a { color: rgba(255,255,255,0.85); text-decoration: none; padding: 8px 16px; border-radius: 6px; font-size: 0.88rem; font-weight: 500; transition: all 0.2s; }
+    .nav-links a:hover { background: rgba(255,255,255,0.12); color: #fff; }
+    .nav-links .btn-cta { background: var(--green); color: #fff; border-radius: 8px; }
+    .nav-links .btn-cta:hover { background: #008800; }
+
+    /* LANG SWITCHER */
+    .lang-switcher { display:flex; align-items:center; gap:6px; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); border-radius:20px; padding:4px 10px; }
+    .lang-switcher span { font-size:0.8rem; color:rgba(255,255,255,0.6); }
+    .lang-select { background:transparent; border:none; color:#fff; font-family:'Poppins',sans-serif; font-size:0.82rem; font-weight:600; cursor:pointer; outline:none; padding:2px 4px; }
+    .lang-select option { color:#111; background:#fff; }
+
+    /* PAGE HERO */
+    .page-hero {
+      min-height: 55vh;
+      background: linear-gradient(135deg, rgba(0,0,0,0.75) 0%, rgba(0,80,0,0.6) 100%),
+        url('https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=1600&q=80') center/cover no-repeat;
+      display: flex; align-items: center; padding: 140px 6% 80px;
+    }
+    .page-hero-content { max-width: 680px; }
+    .page-badge { display: inline-block; background: var(--gold); color: #000; font-size: 0.75rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; padding: 6px 18px; border-radius: 20px; margin-bottom: 20px; }
+    .page-hero h1 { font-family: 'Playfair Display', serif; font-size: clamp(2rem, 4.5vw, 3.2rem); color: #fff; line-height: 1.2; margin-bottom: 18px; }
+    .page-hero h1 span { color: var(--gold); }
+    .page-hero p { font-size: 1.05rem; color: rgba(255,255,255,0.8); line-height: 1.8; }
+
+    /* MISSION SECTION */
+    .mission { padding: 90px 6%; background: #fff; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; }
+    .two-col img { width: 100%; border-radius: 20px; object-fit: cover; height: 420px; box-shadow: 0 16px 48px rgba(0,0,0,0.15); }
+    .section-tag { display: inline-block; background: rgba(0,102,0,0.1); color: var(--green); font-size: 0.75rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; padding: 6px 16px; border-radius: 20px; margin-bottom: 14px; border: 1px solid rgba(0,102,0,0.25); }
+    .section-title { font-family: 'Playfair Display', serif; font-size: clamp(1.7rem, 3vw, 2.5rem); color: #1a1a1a; line-height: 1.25; margin-bottom: 18px; }
+    .section-title span { color: var(--green); }
+    .body-text { font-size: 0.95rem; color: #555; line-height: 1.9; margin-bottom: 16px; }
+
+    /* VALUES */
+    .values { background: var(--light); padding: 90px 6%; }
+    .values-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 24px; margin-top: 50px; }
+    .value-card { background: #fff; border-radius: 18px; padding: 30px 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.07); border-left: 5px solid var(--green); }
+    .value-card .icon { font-size: 2.2rem; margin-bottom: 14px; }
+    .value-card h3 { font-size: 1rem; font-weight: 600; margin-bottom: 10px; }
+    .value-card p { font-size: 0.85rem; color: #666; line-height: 1.7; }
+
+    /* TEAM / STORY */
+    .story { padding: 90px 6%; background: #fff; }
+    .story-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; }
+    .story-grid img { width: 100%; border-radius: 20px; height: 400px; object-fit: cover; box-shadow: 0 16px 48px rgba(0,0,0,0.12); }
+    .story-grid .text-side { }
+    .highlight-box { background: rgba(0,102,0,0.06); border-left: 4px solid var(--green); border-radius: 0 12px 12px 0; padding: 20px 24px; margin: 20px 0; }
+    .highlight-box p { font-size: 0.95rem; color: #333; line-height: 1.8; font-style: italic; }
+
+    /* CTA */
+    .cta-banner { background: linear-gradient(135deg, var(--green) 0%, #004400 100%); padding: 80px 6%; text-align: center; }
+    .cta-banner h2 { font-family: 'Playfair Display', serif; font-size: clamp(1.8rem, 3.5vw, 2.6rem); color: #fff; margin-bottom: 16px; }
+    .cta-banner p { color: rgba(255,255,255,0.8); font-size: 1rem; margin-bottom: 32px; }
+    .btn-gold { background: var(--gold); color: #000; padding: 14px 36px; border-radius: 10px; font-weight: 700; font-size: 0.95rem; text-decoration: none; transition: all 0.25s; display: inline-block; }
+    .btn-gold:hover { background: #f0c96a; transform: translateY(-2px); }
+
+    footer { background: #0a0a0a; padding: 40px 6%; text-align: center; }
+    footer p { color: rgba(255,255,255,0.35); font-size: 0.82rem; }
+    footer a { color: var(--gold); text-decoration: none; margin: 0 10px; }
+
+    @media (max-width: 768px) {
+      .two-col, .story-grid { grid-template-columns: 1fr; }
+      .two-col img, .story-grid img { height: 260px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="flag-stripe"></div>
+
+  <nav>
+    <div class="nav-brand">Smart<span>Serve</span> SMEs</div>
+    <div class="nav-links">
+      <a href="index.html" data-i18n="nav.home">Home</a>
+      <a href="about.html" data-i18n="nav.about">About</a>
+      <a href="services.html" data-i18n="nav.services">Services</a>
+      <a href="contact.html" data-i18n="nav.contact">Contact</a>
+      <div class="lang-switcher">
+        <span>🌐</span>
+        <select class="lang-select" onchange="changeLanguage(this.value)">
+          <option value="en">English</option>
+          <option value="sw">Kiswahili</option>
+        </select>
+      </div>
+      <a href="business-select.html" class="btn-cta" data-i18n="nav.getstarted">Get Started →</a>
+    </div>
+  </nav>
+
+  <!-- PAGE HERO -->
+  <div class="page-hero">
+    <div class="page-hero-content">
+      <div class="page-badge" data-i18n="about.badge">🇰🇪 Our Story</div>
+      <h1><span data-i18n="about.h1a">Built for</span> <span data-i18n="about.h1b">Kenyan Hustlers</span> <span data-i18n="about.h1c">by Kenyans</span></h1>
+      <p data-i18n="about.hero.p">SmartServe SMEs was born from a simple observation — Kenya's small business owners are hardworking, talented and resilient. They just needed better digital tools to reach more customers.</p>
+    </div>
+  </div>
+
+  <!-- MISSION -->
+  <section class="mission">
+    <div class="two-col">
+      <img src="images/IMG-20260419-WA0051.jpg" alt="African woman entrepreneur at work">
+      <div>
+        <div class="section-tag" data-i18n="about.mission.tag">Our Mission</div>
+        <h2 class="section-title"><span data-i18n="about.mission.h1">Empowering</span> <span data-i18n="about.mission.h2">Small Businesses</span> <span data-i18n="about.mission.h3">to Thrive</span></h2>
+        <p class="body-text" data-i18n="about.mission.p1">SmartServe SMEs is a digital platform dedicated to empowering Kenya's small and medium enterprises. We connect business owners — tailors, salon operators, restaurant owners, hardware dealers, agrovets, cyber cafés and boutiques — with customers who need their services.</p>
+        <p class="body-text" data-i18n="about.mission.p2">We believe that every mama mboga, every fundi, every salon owner deserves the same digital tools that big companies use. Our platform is affordable, simple to use, and built specifically for the Kenyan market — with M-Pesa payments, Swahili-friendly design, and local business workflows.</p>
+        <p class="body-text" data-i18n="about.mission.p3">Our mission is to walk with entrepreneurs through every stage of their business journey — transforming small steps into great success.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- VALUES -->
+  <section class="values">
+    <div class="section-tag" data-i18n="about.values.tag">What We Stand For</div>
+    <h2 class="section-title"><span data-i18n="about.values.h">Our</span> <span data-i18n="about.values.h2">Core Values</span></h2>
+    <div class="values-grid">
+      <div class="value-card">
+        <div class="icon">🤝</div>
+        <h3 data-i18n="about.val1.h">Community First</h3>
+        <p data-i18n="about.val1.p">We build for the Kenyan community — understanding local needs, local languages and local business culture.</p>
+      </div>
+      <div class="value-card">
+        <div class="icon">💡</div>
+        <h3 data-i18n="about.val2.h">Simple Innovation</h3>
+        <p data-i18n="about.val2.p">Technology should make life easier, not harder. Every feature we build is designed to be used by anyone with a smartphone.</p>
+      </div>
+      <div class="value-card">
+        <div class="icon">🔒</div>
+        <h3 data-i18n="about.val3.h">Trust & Security</h3>
+        <p data-i18n="about.val3.p">Your business data and customer information is protected. We use secure authentication and encrypted communications.</p>
+      </div>
+      <div class="value-card">
+        <div class="icon">📈</div>
+        <h3 data-i18n="about.val4.h">Growth Focused</h3>
+        <p data-i18n="about.val4.p">Every tool on our platform is designed with one goal — helping your business get more customers and earn more money.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- STORY -->
+  <section class="story">
+    <div class="story-grid">
+      <div class="text-side">
+        <div class="section-tag" data-i18n="about.story.tag">The Story</div>
+        <h2 class="section-title"><span data-i18n="about.story.h1">From</span> <span data-i18n="about.story.h2">Kenyan Streets</span> <span data-i18n="about.story.h3">to Digital Dashboards</span></h2>
+        <p class="body-text" data-i18n="about.story.p1">Kenya has over 7 million small businesses. They operate in markets, along roadsides, in estates and in towns across the country. Most of them rely on word of mouth and physical walk-ins to get customers.</p>
+        <div class="highlight-box">
+          <p data-i18n="about.story.quote">"We asked ourselves — what if a tailor in Gikomba could take orders from a customer in Westlands without them ever meeting? What if a salon in Kisumu could manage bookings from a phone? That's why we built SmartServe SMEs."</p>
+        </div>
+        <p class="body-text" data-i18n="about.story.p2">Today, SmartServe SMEs gives every small business owner a professional digital presence — a dashboard to manage customers, orders, payments and deliveries — all in one place, for just KSh 300 a month.</p>
+      </div>
+      <img src="images/IMG-20260513-WA0044.jpg" alt="African business woman entrepreneur">
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <div class="cta-banner">
+    <h2 data-i18n="about.cta.h">Join the SmartServe Community</h2>
+    <p data-i18n="about.cta.p">Register your business today and start connecting with more customers across Kenya.</p>
+    <a href="business-select.html" class="btn-gold" data-i18n="about.cta.btn">Register Your Business →</a>
+  </div>
+
+  <footer>
+    <p>
+      <a href="index.html">Home</a>
+      <a href="services.html">Services</a>
+      <a href="contact.html">Contact</a>
+    </p>
+    <p style="margin-top:14px;">© 2025 SmartServe SMEs — Made with ❤️ in Kenya 🇰🇪</p>
+  </footer>
+
+  <div class="flag-stripe"></div>
+
+  <script src="lang.js"></script>
+</body>
+</html>

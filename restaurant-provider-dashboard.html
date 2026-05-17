@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Restaurant - Provider Dashboard</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=Playfair+Display:wght@700&display=swap');
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Poppins', sans-serif; display: flex; min-height: 100vh; background: linear-gradient(rgba(0,0,0,0.6),rgba(0,0,0,0.6)), url('https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1400') no-repeat center/cover fixed; color: #f0f0f0; }
+    .sidebar { width: 260px; background: rgba(80,20,10,0.95); backdrop-filter: blur(8px); height: 100vh; padding: 30px 20px; position: fixed; display: flex; flex-direction: column; box-shadow: 4px 0 20px rgba(0,0,0,0.4); }
+    .sidebar h2 { font-family: 'Playfair Display', serif; font-size: 1.3rem; color: #ffe8c0; text-align: center; margin-bottom: 30px; }
+    .sidebar a { display: block; color: #fff; text-decoration: none; padding: 12px 16px; margin: 6px 0; border-radius: 8px; font-weight: 500; cursor: pointer; transition: all 0.3s; }
+    .sidebar a:hover { background: rgba(255,255,255,0.2); transform: translateX(6px); }
+    .content { margin-left: 260px; flex: 1; padding: 40px; overflow-y: auto; }
+    .tab-content { display: none; animation: fadeIn 0.5s ease; }
+    .tab-content.active { display: block; }
+    .card { background: rgba(255,255,255,0.1); backdrop-filter: blur(6px); border-radius: 12px; padding: 24px; margin-bottom: 20px; }
+    h1 { font-family: 'Playfair Display', serif; font-size: 2rem; margin-bottom: 8px; color: #ffe8c0; }
+    h2 { font-family: 'Playfair Display', serif; color: #ffe8c0; margin-bottom: 16px; }
+    p { color: #ddd; line-height: 1.7; }
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 14px; margin: 20px 0; }
+    .stat-card { background: rgba(255,255,255,0.12); border-radius: 10px; padding: 20px; text-align: center; }
+    .stat-card .num { font-size: 1.8rem; font-weight: 700; color: #ffd080; }
+    .stat-card .lbl { font-size: 0.8rem; color: #ddd; margin-top: 4px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.1); font-size: 0.9rem; }
+    th { color: #ffd080; font-weight: 600; }
+    select, input, textarea { width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.15); color: #fff; font-family: 'Poppins', sans-serif; margin-bottom: 14px; }
+    select option { color: #111; }
+    button { background: linear-gradient(135deg, #c0392b, #e74c3c); color: #fff; border: none; padding: 11px 26px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s; }
+    button:hover { transform: scale(1.05); opacity: 0.9; }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <h2>🍽️ Restaurant Manager</h2>
+    <a onclick="showTab('overview')">📊 Overview</a>
+    <a onclick="showTab('orders-mgmt')">📦 Manage Orders</a>
+    <a onclick="showTab('reservations')">🪑 Reservations</a>
+    <a onclick="showTab('menu-mgmt')">📋 Manage Menu</a>
+    <a onclick="showTab('inventory')">📦 Inventory</a>
+    <a onclick="showTab('staff')">👨‍🍳 Staff</a>
+    <a onclick="showTab('earnings')">💰 Earnings</a>
+    <a onclick="showTab('customers')">👥 My Customers</a>
+    <a onclick="logout()">🚪 Logout</a>
+  </div>
+
+  <div class="content">
+    <div id="overview" class="tab-content active">
+      <h1>Restaurant Overview</h1>
+      <p>Monitor orders, reservations, and daily operations from here.</p>
+      <div class="stat-grid">
+        <div class="stat-card"><div class="num">24</div><div class="lbl">Orders Today</div></div>
+        <div class="stat-card"><div class="num">6</div><div class="lbl">Table Reservations</div></div>
+        <div class="stat-card"><div class="num">KSh 18,500</div><div class="lbl">Today's Revenue</div></div>
+        <div class="stat-card"><div class="num">4</div><div class="lbl">Staff On Duty</div></div>
+      </div>
+    </div>
+
+    <div id="orders-mgmt" class="tab-content">
+      <h2>Manage Orders</h2>
+      <div class="card">
+        <table>
+          <tr><th>Order #</th><th>Customer</th><th>Items</th><th>Type</th><th>Status</th><th>Action</th></tr>
+          <tr><td>#001</td><td>John M.</td><td>Grilled Chicken x2</td><td>Dine-in</td><td>🕐 Pending</td><td><button style="padding:6px 12px;font-size:0.8rem;">Mark Ready</button></td></tr>
+          <tr><td>#002</td><td>Sarah K.</td><td>Pizza x1, Juice x2</td><td>Takeaway</td><td>🍳 Preparing</td><td><button style="padding:6px 12px;font-size:0.8rem;">Mark Ready</button></td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div id="reservations" class="tab-content">
+      <h2>Table Reservations</h2>
+      <div class="card">
+        <table>
+          <tr><th>Name</th><th>Date</th><th>Time</th><th>Guests</th><th>Status</th></tr>
+          <tr><td>Alice N.</td><td>12 May 2026</td><td>7:00 PM</td><td>4</td><td>✅ Confirmed</td></tr>
+          <tr><td>Bob O.</td><td>13 May 2026</td><td>1:00 PM</td><td>2</td><td>🕐 Pending</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div id="menu-mgmt" class="tab-content">
+      <h2>Manage Menu</h2>
+      <div class="card">
+        <label>Item Name</label><input type="text" placeholder="e.g. Tilapia & Ugali">
+        <label>Category</label>
+        <select><option>Main Course</option><option>Starter</option><option>Dessert</option><option>Drinks</option></select>
+        <label>Price (KSh)</label><input type="number" placeholder="e.g. 500">
+        <label>Description</label><textarea placeholder="Brief description of the dish..."></textarea>
+        <button>Add to Menu</button>
+      </div>
+    </div>
+
+    <div id="inventory" class="tab-content">
+      <h2>Inventory</h2>
+      <div class="card">
+        <table>
+          <tr><th>Item</th><th>Stock</th><th>Unit</th><th>Status</th></tr>
+          <tr><td>Chicken</td><td>15</td><td>kg</td><td>✅ OK</td></tr>
+          <tr><td>Tomatoes</td><td>3</td><td>kg</td><td>⚠️ Low</td></tr>
+          <tr><td>Rice</td><td>20</td><td>kg</td><td>✅ OK</td></tr>
+          <tr><td>Cooking Oil</td><td>2</td><td>litres</td><td>⚠️ Low</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div id="staff" class="tab-content">
+      <h2>Staff Management</h2>
+      <div class="card">
+        <label>Staff Name</label><input type="text" placeholder="Full name">
+        <label>Role</label>
+        <select><option>Chef</option><option>Waiter</option><option>Cashier</option><option>Manager</option></select>
+        <label>Phone</label><input type="tel" placeholder="07XX XXX XXX">
+        <button>Add Staff</button>
+      </div>
+    </div>
+
+    <div id="earnings" class="tab-content">
+      <h2>Earnings</h2>
+      <div class="stat-grid">
+        <div class="stat-card"><div class="num">KSh 18,500</div><div class="lbl">Today</div></div>
+        <div class="stat-card"><div class="num">KSh 112,000</div><div class="lbl">This Week</div></div>
+        <div class="stat-card"><div class="num">KSh 480,000</div><div class="lbl">This Month</div></div>
+      </div>
+    </div>
+
+    <div id="customers" class="tab-content">
+      <h2>My Customers</h2>
+      <p style="margin-bottom:16px;color:#ddd;">Customers who selected you. Click "Serve Now" to set one as active.</p>
+      <div id="active-customer-banner" style="display:none;background:rgba(100,255,100,0.15);border:1px solid #80ff80;border-radius:10px;padding:14px 20px;margin-bottom:16px;color:#b3ffb3;"></div>
+      <div id="customer-queue-list"><p style="color:#ddd;">Loading your customer queue...</p></div>
+    </div>
+
+  </div>
+
+  <script>
+    const BASE = 'http://localhost:5501';
+
+    // Auth guard — runs immediately on page load
+    (function() {
+      if (!localStorage.getItem('user')) {
+        window.location.replace('business-select.html');
+      }
+      history.replaceState(null, '', window.location.href);
+    })();
+
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    let activeCustomerId = null;
+
+    function showTab(id) {
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      if (id === 'customers') loadCustomerQueue();
+    }
+
+    function loadCustomerQueue() {
+      const queueEl = document.getElementById('customer-queue-list');
+      queueEl.innerHTML = '<p style="color:#ddd;">Loading your customer queue...</p>';
+      fetch(`${BASE}/my-customers/${user.id}`, { credentials: 'include' })
+        .then(r => r.json())
+        .then(customers => {
+          if (!customers.length) {
+            queueEl.innerHTML = '<p style="color:#ddd;">No customers have selected you yet.</p>';
+            return;
+          }
+          queueEl.innerHTML = customers.map(c => `
+            <div style="background:rgba(255,255,255,0.1);border-radius:10px;padding:18px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+              <div>
+                <div style="font-weight:600;">${c.name}</div>
+                <div style="font-size:0.85rem;color:#ddd;">${c.email || ''}</div>
+              </div>
+              <button id="serve-btn-${c.id}" onclick="serveCustomer(${c.id}, '${(c.name||'').replace(/'/g,"\\'")}', this)">Serve Now</button>
+            </div>
+          `).join('');
+        })
+        .catch(() => {
+          queueEl.innerHTML = '<p style="color:#ffaaaa;">Failed to load customer queue. Please try again.</p>';
+        });
+    }
+
+    function serveCustomer(customerId, customerName, btn) {
+      activeCustomerId = customerId;
+      localStorage.setItem('activeCustomerId', customerId);
+      localStorage.setItem('activeCustomerName', customerName);
+      const banner = document.getElementById('active-customer-banner');
+      banner.style.display = 'block';
+      banner.textContent = '🟢 Now serving: ' + customerName;
+      document.querySelectorAll('[id^="serve-btn-"]').forEach(b => {
+        b.textContent = 'Serve Now';
+        b.disabled = false;
+      });
+      btn.textContent = '✅ Serving';
+      btn.disabled = true;
+    }
+
+    function logout() {
+      localStorage.removeItem('user');
+      localStorage.removeItem('businessType');
+      localStorage.removeItem('activeCustomerId');
+      localStorage.removeItem('activeCustomerName');
+      window.location.replace('business-select.html');
+    }
+  </script>
+  <script src="lang.js"></script>
+</body>
+</html>

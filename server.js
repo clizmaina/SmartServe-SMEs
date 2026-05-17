@@ -1,0 +1,1721 @@
+const cors = require("cors");
+const express = require("express");
+const mysql = require("mysql2");
+const bcrypt = require("bcrypt");
+const multer = require('multer');
+const path = require('path');
+const nodemailer = require('nodemailer');
+const app = express();
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+const PORT = process.env.PORT || 5000;
+const axios = require("axios");
+const session = require('express-session');
+require("dotenv").config();
+
+// ✅ CORS Setup — Dynamic (works with localhost + LAN IPs)
+const allowedOrigins = [
+  "http://192.168.100.32:5502",
+  "http://localhost:5502",
+  "http://127.0.0.1:5502",
+  "http://192.168.100.32:5503",
+  "http://localhost:5503",
+  "http://127.0.0.1:5503",
+  "http://192.168.100.32:5504",
+  "http://localhost:5504",
+  "http://127.0.0.1:5504"
+];
+
+// Allow any localhost/127.0.0.1 port (covers Live Server port changes)
+const localhostPattern = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
+
+// Allow LAN devices (e.g., 192.168.x.x on any port)
+const lanPattern = /^http:\/\/192\.168\.\d{1,3}\.\d{1,3}(:\d+)?$/;
+
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin) || localhostPattern.test(origin) || lanPattern.test(origin)) {
+      console.log("✅ CORS Allowed:", origin);
+      callback(null, true);
+    } else {
+      console.log("❌ CORS Blocked:", origin);
+      callback(new Error("Not allowed by CORS: " + origin));
+    }
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+}));
+
+// ✅ Handle preflight requests for all routes
+app.options('*', cors());
+
+app.use(session({
+  secret: 'your_secret_key',
+  resave: false,
+  saveUninitialized: true,
+  cookie: {
+    maxAge: 1000 * 60 * 60,
+    httpOnly: true,
+    secure: false
+  }
+}));
+
+// ✅ Database Connection (XAMPP)
+const db = mysql.createConnection({
+    host: "localhost",
+    user: "smartstitsch",
+    password: "smart123456",
+    database: "smartstitchtech"
+});
+
+db.connect(err => {
+    if (err) {
+        console.error("❌ Database connection failed:", err);
+        process.exit(1);
+    }
+    console.log("✅ Connected to MySQL database!");
+});
+
+// ✅ Run DB migrations — add is_verified + provider_id columns if missing
+db.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_verified TINYINT(1) NOT NULL DEFAULT 0`, () => {});
+db.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS provider_id INT NULL DEFAULT NULL`, () => {});
+
+// ✅ Delivery preferences table
+db.query(`
+  CREATE TABLE IF NOT EXISTS delivery_preferences (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    customer_id INT NOT NULL,
+    designer_id INT NOT NULL,
+    delivery_type ENUM('pickup','delivery') NOT NULL,
+    address TEXT,
+    location_notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_customer_designer (customer_id, designer_id)
+  )
+`, (err) => { if (err) console.error("❌ delivery_preferences table error:", err.message); });
+// Allow same email across different business types (drop old unique on email if exists)
+db.query(`ALTER TABLE users DROP INDEX email`, () => {}); // silently fails if already dropped
+db.query(`ALTER TABLE users ADD UNIQUE KEY unique_email_business (email, business_type)`, () => {});
+
+// ✅ Boutique tables
+db.query(`
+  CREATE TABLE IF NOT EXISTS boutique_products (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    provider_id INT NOT NULL,
+    name VARCHAR(200) NOT NULL,
+    category VARCHAR(100),
+    price DECIMAL(10,2),
+    sizes VARCHAR(100),
+    stock INT DEFAULT 0,
+    image_url VARCHAR(300),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`, () => {});
+
+db.query(`
+  CREATE TABLE IF NOT EXISTS boutique_orders (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    customer_id INT NOT NULL,
+    provider_id INT NOT NULL,
+    product_id INT,
+    item_name VARCHAR(200),
+    size VARCHAR(20),
+    quantity INT DEFAULT 1,
+    total_price DECIMAL(10,2),
+    status VARCHAR(50) DEFAULT 'pending',
+    delivered_at TIMESTAMP NULL DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`, () => {});
+
+// Add delivered_at column if it doesn't exist yet (migration for existing tables)
+db.query(`ALTER TABLE boutique_orders ADD COLUMN IF NOT EXISTS delivered_at TIMESTAMP NULL DEFAULT NULL`, () => {});
+
+// Boutique delivered inventory log
+db.query(`
+  CREATE TABLE IF NOT EXISTS boutique_delivered_inventory (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    order_id INT NOT NULL,
+    provider_id INT NOT NULL,
+    customer_id INT NOT NULL,
+    item_name VARCHAR(200),
+    size VARCHAR(20),
+    quantity INT DEFAULT 1,
+    total_price DECIMAL(10,2),
+    customer_name VARCHAR(200),
+    delivered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`, () => {});
+
+db.query(`
+  CREATE TABLE IF NOT EXISTS boutique_fittings (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    customer_id INT NOT NULL,
+    provider_id INT NOT NULL,
+    fitting_date DATE,
+    fitting_time TIME,
+    items TEXT,
+    status VARCHAR(50) DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`, () => {});
+
+db.query(`
+  CREATE TABLE IF NOT EXISTS boutique_wishlist (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    customer_id INT NOT NULL,
+    item_name VARCHAR(200),
+    price DECIMAL(10,2),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`, () => {});
+
+db.query(`
+  CREATE TABLE IF NOT EXISTS boutique_reviews (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    customer_id INT NOT NULL,
+    provider_id INT NOT NULL,
+    rating INT,
+    review TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`, () => {});
+
+db.query(`
+  CREATE TABLE IF NOT EXISTS boutique_chat (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    customer_id INT NOT NULL,
+    provider_id INT NOT NULL,
+    sender VARCHAR(20) NOT NULL,
+    message TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`, () => {});
+
+// ✅ Provider subscriptions table
+db.query(`
+  CREATE TABLE IF NOT EXISTS provider_subscriptions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    provider_id INT NOT NULL,
+    amount DECIMAL(10,2) NOT NULL DEFAULT 300.00,
+    mpesa_ref VARCHAR(100),
+    phone VARCHAR(20),
+    status ENUM('pending','active','expired') NOT NULL DEFAULT 'pending',
+    paid_at TIMESTAMP NULL DEFAULT NULL,
+    expires_at TIMESTAMP NULL DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_provider (provider_id),
+    INDEX idx_status_expiry (status, expires_at)
+  )
+`, (err) => { if (err) console.error("❌ provider_subscriptions table error:", err.message); });
+
+// ✅ Nodemailer transporter — uses env vars for credentials
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS   // use an App Password, not your real password
+    }
+});
+
+// ✅ In-memory OTP store: { "email|businessType": { otp, expiresAt, userData } }
+const otpStore = {};
+
+
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+    destination: './uploads/', // Destination folder for uploaded files
+    filename: function (req, file, cb) {
+        cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname));
+    }
+});
+
+const upload = multer({ storage: storage });
+
+// ✅ Health Check
+app.get("/", (req, res) => {
+    res.json({ success: true, message: "Server is running!" });
+});
+
+// ✅ STEP 1 — Send OTP before signup completes
+app.post("/send-otp", async (req, res) => {
+    const { email, name, password, role, businessType } = req.body;
+
+    if (!email || !name || !password || !role || !businessType) {
+        return res.status(400).json({ success: false, message: "❌ Missing required fields" });
+    }
+
+    // Check if this email+businessType combo already exists
+    const [existing] = await db.promise().query(
+        "SELECT id FROM users WHERE email = ? AND business_type = ?",
+        [email, businessType]
+    );
+    if (existing.length > 0) {
+        return res.status(409).json({ success: false, message: "❌ This email is already registered for this business type." });
+    }
+
+    // Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+
+    const key = `${email}|${businessType}`;
+    otpStore[key] = { otp, expiresAt, userData: { name, email, password, role, businessType } };
+
+    try {
+        await transporter.sendMail({
+            from: `"SmartStitch" <${process.env.EMAIL_USER}>`,
+            to: email,
+            subject: "Your SmartStitch Verification Code",
+            html: `
+                <div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;padding:30px;border:1px solid #eee;border-radius:10px;">
+                    <h2 style="color:#111;">Verify your email</h2>
+                    <p>Hi <strong>${name}</strong>,</p>
+                    <p>Use the code below to complete your registration for <strong>${businessType}</strong>:</p>
+                    <div style="font-size:2.5rem;font-weight:bold;letter-spacing:10px;text-align:center;padding:20px;background:#f4f4f4;border-radius:8px;margin:20px 0;">${otp}</div>
+                    <p style="color:#888;font-size:0.85rem;">This code expires in 10 minutes. If you didn't request this, ignore this email.</p>
+                </div>
+            `
+        });
+        res.json({ success: true, message: "✅ OTP sent to your email." });
+    } catch (err) {
+        console.error("❌ Email send error:", err.message);
+        res.status(500).json({ success: false, message: "❌ Failed to send OTP email. Check server email config." });
+    }
+});
+
+// ✅ STEP 2 — Verify OTP and complete signup
+app.post("/signup", async (req, res) => {
+    const { email, businessType, otp } = req.body;
+
+    if (!email || !businessType || !otp) {
+        return res.status(400).json({ success: false, message: "❌ Missing email, businessType, or OTP" });
+    }
+
+    const key = `${email}|${businessType}`;
+    const record = otpStore[key];
+
+    if (!record) {
+        return res.status(400).json({ success: false, message: "❌ No OTP found. Please request a new one." });
+    }
+    if (Date.now() > record.expiresAt) {
+        delete otpStore[key];
+        return res.status(400).json({ success: false, message: "❌ OTP has expired. Please request a new one." });
+    }
+    if (record.otp !== otp.trim()) {
+        return res.status(400).json({ success: false, message: "❌ Incorrect OTP." });
+    }
+
+    // OTP valid — create the user
+    const { name, password, role } = record.userData;
+    delete otpStore[key];
+
+    try {
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const query = "INSERT INTO users (name, email, password, role, business_type, is_verified) VALUES (?, ?, ?, ?, ?, 1)";
+        db.query(query, [name, email, hashedPassword, role, businessType], (err, results) => {
+            if (err) {
+                console.error("❌ Database Error:", err.sqlMessage);
+                if (err.code === 'ER_DUP_ENTRY') {
+                    return res.status(409).json({ success: false, message: "❌ This email is already registered for this business type." });
+                }
+                return res.status(500).json({ success: false, message: "❌ Server error", error: err.sqlMessage });
+            }
+            const newUserId = results.insertId;
+            // If provider/designer → signal frontend to go to subscription payment
+            const isProvider = (role === "designer");
+            res.json({
+                success: true,
+                message: "✅ Signup successful!",
+                userId: newUserId,
+                role,
+                requiresSubscription: isProvider
+            });
+        });
+    } catch (error) {
+        console.error("❌ Catch Error:", error.message);
+        res.status(500).json({ success: false, message: "❌ Server error", error: error.message });
+    }
+});
+
+// ✅ USER LOGIN — matches on email + businessType so one email can have multiple business accounts
+app.post("/login", async (req, res) => {
+    const { email, password, businessType } = req.body;
+
+    if (!email || !password || !businessType) {
+        return res.status(400).json({ success: false, message: "❌ Missing email, password, or business type" });
+    }
+
+    try {
+        const [results] = await db.promise().query(
+            "SELECT * FROM users WHERE email = ? AND business_type = ?",
+            [email, businessType]
+        );
+
+        if (results.length === 0) {
+            return res.status(401).json({ success: false, message: "❌ No account found for this email and business type." });
+        }
+
+        const user = results[0];
+
+        if (!user.is_verified) {
+            return res.status(403).json({ success: false, message: "❌ Email not verified. Please complete signup." });
+        }
+
+        const match = await bcrypt.compare(password, user.password);
+        if (!match) {
+            return res.status(401).json({ success: false, message: "❌ Invalid email or password" });
+        }
+
+        // ── Subscription check for providers ──────────────────────────────────
+        const isProvider = (user.role === "designer");
+        if (isProvider) {
+            const [subs] = await db.promise().query(
+                `SELECT * FROM provider_subscriptions
+                 WHERE provider_id = ? AND status = 'active' AND expires_at > NOW()
+                 ORDER BY expires_at DESC LIMIT 1`,
+                [user.id]
+            );
+            if (subs.length === 0) {
+                // No active subscription — return special flag so frontend redirects to payment
+                return res.json({
+                    success: false,
+                    requiresSubscription: true,
+                    userId: user.id,
+                    role: user.role,
+                    businessType: user.business_type,
+                    name: user.name,
+                    message: "❌ Your subscription has expired or is not active. Please pay KSh 300 to continue."
+                });
+            }
+            // Attach subscription expiry to response
+            const sub = subs[0];
+            req.session.userId = user.id;
+            req.session.role = user.role;
+            return res.json({
+                success: true,
+                message: "✅ Login successful",
+                userId: user.id,
+                role: user.role,
+                businessType: user.business_type,
+                name: user.name,
+                subscriptionExpiresAt: sub.expires_at
+            });
+        }
+
+        // Regular customer login
+        req.session.userId = user.id;
+        req.session.role = user.role;
+        res.json({
+            success: true,
+            message: "✅ Login successful",
+            userId: user.id,
+            role: user.role,
+            businessType: user.business_type,
+            name: user.name
+        });
+
+    } catch (err) {
+        console.error("❌ Login error:", err);
+        res.status(500).json({ success: false, message: "❌ Server error" });
+    }
+});
+
+// ✅ USER LOGOUT
+app.post("/logout", (req, res) => {
+    res.json({ success: true, message: "✅ Logout successful" });
+});
+
+// ✅ Fetch Available Customers — for provider dashboards, filtered by business type
+app.get("/customers", (req, res) => {
+    const businessType = req.query.businessType;
+    let query = "SELECT id, name, email FROM users WHERE role='customer'";
+    const params = [];
+    if (businessType) {
+        query += " AND business_type = ?";
+        params.push(businessType);
+    }
+    db.query(query, params, (err, rows) => {
+        if (err) {
+            return res.status(500).json({ success: false, message: "❌ Error fetching customers", error: err.message });
+        }
+        res.json({ success: true, customers: rows });
+    });
+});
+
+// ✅ Customer selects a provider — saves provider_id on the customer's user record
+app.post("/select-provider", async (req, res) => {
+    const { customerId, providerId } = req.body;
+    if (!customerId || !providerId) {
+        return res.status(400).json({ success: false, message: "❌ Missing customerId or providerId" });
+    }
+    try {
+        await db.promise().query(
+            "UPDATE users SET provider_id = ? WHERE id = ?",
+            [providerId, customerId]
+        );
+        res.json({ success: true, message: "✅ Provider selected successfully." });
+    } catch (err) {
+        console.error("❌ Error selecting provider:", err);
+        res.status(500).json({ success: false, message: "❌ Server error" });
+    }
+});
+
+// ✅ Fetch customers assigned to a specific provider
+app.get("/my-customers/:providerId", async (req, res) => {
+    const { providerId } = req.params;
+    try {
+        const [rows] = await db.promise().query(
+            "SELECT id, name, email FROM users WHERE provider_id = ? AND role = 'customer'",
+            [providerId]
+        );
+        res.json({ success: true, customers: rows });
+    } catch (err) {
+        console.error("❌ Error fetching assigned customers:", err);
+        res.status(500).json({ success: false, message: "❌ Server error" });
+    }
+});
+
+// ✅ Fetch available providers for a given business type (for customer to choose from)
+app.get("/available-providers", async (req, res) => {
+    const { businessType } = req.query;
+    if (!businessType) {
+        return res.status(400).json({ success: false, message: "❌ businessType required" });
+    }
+    try {
+        const [rows] = await db.promise().query(
+            "SELECT id, name, email FROM users WHERE role = 'designer' AND business_type = ?",
+            [businessType]
+        );
+        res.json({ success: true, providers: rows });
+    } catch (err) {
+        console.error("❌ Error fetching providers:", err);
+        res.status(500).json({ success: false, message: "❌ Server error" });
+    }
+});
+
+app.get("/customer-designs/:customerId", async (req, res) => {
+  const { customerId } = req.params;
+  try {
+    const [rows] = await db.promise().query(
+      "SELECT * FROM customer_designs WHERE customer_id = ?",
+      [customerId]
+    );
+    res.json({ success: true, designs: rows });
+  } catch (error) {
+    console.error("❌ Error fetching customer designs:", error);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+});
+
+app.get("/get-customer-id", (req, res) => {
+    console.log("Session data:", req.session); // Debugging: Print session data
+
+    if (!req.session.userId) {
+        return res.status(401).json({ success: false, message: "❌ Not logged in" });
+    }
+
+    const sql = "SELECT id FROM users WHERE id = ?";
+    db.query(sql, [req.session.userId], (err, results) => {
+        if (err) return res.status(500).json({ success: false, message: "❌ Database error" });
+        if (results.length === 0) return res.status(404).json({ success: false, message: "❌ User not found" });
+
+        res.json({ success: true, customerId: results[0].id });
+    });
+});
+
+// Upload Design Route (Example)
+app.use('/uploads', express.static('uploads'));
+app.get("/chat/:id", async (req, res) => {
+    const customerId = req.params.id;
+    try {
+        const [rows] = await db.promise().query(
+            "SELECT * FROM chat WHERE customer_id = ?",
+            [customerId]
+        );
+        res.json({ success: true, messages: rows });
+    } catch (error) {
+        console.error("Error fetching chat:", error);
+        res.status(500).json({ success: false, message: "Internal Server Error" });
+    }
+});
+
+app.post("/upload-design", upload.single("image"), (req, res) => {
+  const { customerId,designerId } = req.body;
+
+if (!customerId) {
+    console.log("Missing or invalid Parameters:", req.body);
+    return res.status(400).json({ message: "Customer ID is required." });
+}
+ 
+    const imageUrl = "/uploads/" + req.file.filename;
+
+    db.query(
+        "INSERT INTO customer_designs (customer_id, designer_id, file_path) VALUES (?, ?, ?)",
+        [customerId, designerId, imageUrl],
+        (err, results) => {
+            if (err) {
+                console.error("Database Error:", err);
+                return res.status(500).json({ success: false, message: "Database error" });
+            }
+            res.json({ success: true, message: "Design uploaded successfully!" });
+        }
+    );
+}); 
+
+// Submit Measurements Route (Example)
+// ✅ Submit Measurements Route
+app.post("/submit-measurements", (req, res) => {
+  const { garmentType, measurements, designerId, userId } = req.body;
+
+  if (!garmentType || !measurements || !designerId || !userId) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Missing garment type, measurements, customer ID, or designer ID." });
+  }
+
+  const measurementsJSON = JSON.stringify(measurements);
+
+  const sql = `
+    INSERT INTO customer_measurements (user_id, designer_id, garment_type, measurements_json, created_at)
+    VALUES (?, ?, ?, ?, NOW())
+  `;
+
+  db.query(sql, [userId, designerId, garmentType, measurementsJSON], (err, result) => {
+    if (err) {
+      console.error("❌ Error inserting measurements:", err);
+      return res
+        .status(500)
+        .json({ success: false, message: "Database error while saving measurements." });
+    }
+
+    console.log(`✅ Measurements saved for customer ${userId} and designer ${designerId}`);
+    res.json({ success: true, message: "Measurements submitted successfully!" });
+  });
+});
+
+// ✅ Fetch Available designer
+app.get("/available-designer", async (req, res) => {
+  try {
+    const [designers] = await db.promise().query(
+      "SELECT id, name FROM users WHERE role='designer'"
+    );
+    console.log("🎨 Designers fetched from DB:", designers); // <--- add this line
+    res.json({ success: true, designer: designers });
+  } catch (error) {
+    console.error("Error fetching designers:", error);
+    res.status(500).json({ success: false, message: "Error fetching designers" });
+  }
+});
+
+// ✅ Fetch Measurements
+// ✅ Fetch Customer Measurements (for Designer Dashboard)
+app.get("/customer-measurements/:customerId/:designerId", async (req, res) => {
+  const { customerId, designerId } = req.params;
+
+  try {
+    const [rows] = await db.promise().query(
+      "SELECT garment_type, measurements_json, created_at FROM customer_measurements WHERE user_id = ? AND designer_id = ? ORDER BY created_at DESC",
+      [customerId, designerId]
+    );
+
+    const measurements = rows.map(row => ({
+      garmentType: row.garment_type,
+      measurements: JSON.parse(row.measurements_json),
+      createdAt: row.created_at
+    }));
+
+    res.json({ success: true, measurements });
+  } catch (error) {
+    console.error("❌ Error fetching customer measurements:", error);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+});
+
+// ✅ Fetch Payments
+app.post('/api/simple-mpesa-pay', async (req, res) => {
+    const { amount, customerPhone, customerId } = req.body;
+
+    try {
+        // 1. Get M-Pesa Access Token (same as before)
+        const accessToken = await getAccessToken();
+
+        // 2. Initiate STK Push (similar to before, but you might not immediately need the callback URL for the initial request)
+        const response = await axios.post(
+            'https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest',
+            {
+                BusinessShortCode: yourShortcode,
+                Password: generatePassword(), // Implement password generation
+                Timestamp: generateTimestamp(),
+                TransactionType: 'CustomerPayBillOnline',
+                Amount: amount,
+                PartyA: customerPhone,
+                PartyB: yourShortcode,
+                PhoneNumber: customerPhone,
+                CallBackURL: 'SOME_DUMMY_URL', // You might not need a real callback here initially
+                AccountReference: `SIMPLE_PAY_${customerId}`,
+                TransactionDesc: 'Simple M-Pesa Payment',
+            },
+            { headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' } }
+        );
+
+        console.log('Simple M-Pesa STK Push Response:', response.data);
+        const checkoutRequestID = response.data.CheckoutRequestID;
+
+        // 3. Save initial payment info to your DB with 'pending' status and the checkoutRequestID
+        await db.saveSimplePayment({ customerId, amount, phone: customerPhone, checkoutRequestID, status: 'pending' });
+
+        res.json({ success: true, message: 'M-Pesa payment initiated. Check your phone.' });
+
+    } catch (error) {
+        console.error('Error initiating simple M-Pesa:', error.response ? error.response.data : error.message);
+        res.json({ success: false, message: 'Failed to initiate payment.' });
+    }
+});
+
+// You would then have another API endpoint (e.g., `/api/check-payment-status/:checkoutRequestId`)
+// that your frontend could poll or your backend could run periodically to query the
+// M-Pesa API for the transaction status using the CheckoutRequestID.
+
+// ✅ Fetch Product Previews
+app.get("/product-previews/:customerId", async (req, res) => {
+    try {
+        const [rows] = await db.promise().query("SELECT id, image_url FROM product_previews");
+        res.json({ success: true, previews: rows });
+    } catch (error) {
+        console.error("Error fetching product previews:", error);
+        res.status(500).json({ success: false, message: "Internal Server Error" });
+    }
+});
+
+// ✅ Fetch Chat Messages
+// ✅ Fetch chat messages between a customer and a designer
+app.get("/chat/:customerId/:designerId", async (req, res) => {
+  const { customerId, designerId } = req.params;
+
+  // 🔍 Basic validation
+  if (!customerId || !designerId) {
+    return res
+      .status(400)
+      .json({ success: false, message: "❌ Missing customerId or designerId" });
+  }
+
+  try {
+    // 🧠 Fetch messages from chat table ordered by timestamp (or ID)
+    const [rows] = await db.promise().query(
+      `SELECT sender, message, timestamp 
+       FROM chat 
+       WHERE customer_id = ? AND designer_id = ? 
+       ORDER BY timestamp ASC`,
+      [customerId, designerId]
+    );
+
+    // 📨 Respond with messages
+    res.json({ success: true, messages: rows });
+  } catch (error) {
+    console.error("❌ Error fetching chat messages:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "❌ Internal Server Error", error: error.message });
+  }
+});
+
+
+// ✅ Send a Chat Message
+// ✅ Handle sending chat messages between customer and designer
+// ✅ Fixed Send Message Endpoint
+// ✅ Send chat message
+app.post("/send-message", (req, res) => {
+  const { sender, message, customerId, designerId } = req.body;
+
+  // Validate
+  if (!sender || !message || !customerId || !designerId) {
+    return res.status(400).json({
+      success: false,
+      message: "❌ Missing sender, message, customerId, or designerId",
+    });
+  }
+
+  const query = `
+    INSERT INTO chat (sender, message, timestamp, customer_id, designer_id)
+    VALUES (?, ?, NOW(), ?, ?)
+  `;
+
+  db.query(query, [sender, message, customerId, designerId], (err) => {
+    if (err) {
+      console.error("❌ Error inserting chat message:", err);
+      return res.status(500).json({
+        success: false,
+        message: "❌ Database error sending message",
+        error: err.message,
+      });
+    }
+
+    res.json({ success: true, message: "✅ Message sent successfully!" });
+  });
+});
+
+app.post('/upload-design', upload.single('design'), (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ success: false, message: 'No file uploaded.' });
+    }
+    const adminId = req.body.designerId;
+    const customerId = req.body.customerId;
+    const filePath = `/uploads/${req.file.filename}`;
+
+    db.query(
+        "INSERT INTO customer_designs (customer_id, designer_id, file_path) VALUES (?, ?, ?)",
+        [customerId, adminId, filePath],
+        (err, results) => {
+            if (err) {
+                console.error("Error saving design:", err);
+                return res.status(500).json({ success: false, message: 'Error saving design to database.' });
+            }
+            res.json({ success: true, message: 'Design uploaded and saved successfully.' });
+        }
+    );
+});
+app.get("/customer-designs/:customerId/:designerId", async (req, res) => {
+  const { customerId, designerId } = req.params;
+
+  try {
+    const [rows] = await db.promise().query(
+      "SELECT * FROM customer_designs WHERE customer_id = ? AND designer_id = ?",
+      [customerId, designerId]
+    );
+
+    res.json({ success: true, designs: rows });
+  } catch (error) {
+    console.error("❌ Error fetching customer designs:", error);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+});
+
+app.post('/upload-preview', upload.single('image'), (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ success: false, message: 'No file uploaded.' });
+    }
+    const adminId = req.body.adminId;
+    const customerId = req.body.customerId;
+    const imageUrl = `/uploads/${req.file.filename}`;
+
+    db.query(
+        "INSERT INTO product_previews (customer_id, admin_id, image_url) VALUES (?, ?, ?)",
+        [customerId, adminId, imageUrl],
+        (err, results) => {
+            if (err) {
+                console.error("Error saving preview:", err);
+                return res.status(500).json({ success: false, message: 'Error saving preview to database.' });
+            }
+            res.json({ success: true, message: 'File uploaded and preview saved successfully.', imageUrl });
+        }
+    );
+});
+
+
+
+// ============================================================
+// ✅ PROVIDER SUBSCRIPTION SYSTEM — KSh 300 / month
+// ============================================================
+
+// Get subscription status for a provider
+app.get("/subscription/status/:providerId", async (req, res) => {
+    const { providerId } = req.params;
+    try {
+        const [rows] = await db.promise().query(
+            `SELECT * FROM provider_subscriptions
+             WHERE provider_id = ? AND status = 'active' AND expires_at > NOW()
+             ORDER BY expires_at DESC LIMIT 1`,
+            [providerId]
+        );
+        if (rows.length === 0) {
+            // Check if there's a pending payment
+            const [pending] = await db.promise().query(
+                `SELECT * FROM provider_subscriptions WHERE provider_id = ? AND status = 'pending' ORDER BY created_at DESC LIMIT 1`,
+                [providerId]
+            );
+            return res.json({
+                success: true,
+                active: false,
+                pending: pending.length > 0,
+                subscription: pending[0] || null
+            });
+        }
+        res.json({ success: true, active: true, subscription: rows[0] });
+    } catch (err) {
+        console.error("❌ Subscription status error:", err);
+        res.status(500).json({ success: false, message: "❌ Server error" });
+    }
+});
+
+// Initiate subscription payment via M-Pesa STK push
+app.post("/subscription/pay", async (req, res) => {
+    const { providerId, phone } = req.body;
+    if (!providerId || !phone) {
+        return res.status(400).json({ success: false, message: "❌ providerId and phone are required." });
+    }
+
+    // Normalize phone: 07XXXXXXXX → 2547XXXXXXXX
+    let normalizedPhone = phone.replace(/\s+/g, "");
+    if (normalizedPhone.startsWith("0")) {
+        normalizedPhone = "254" + normalizedPhone.slice(1);
+    } else if (normalizedPhone.startsWith("+")) {
+        normalizedPhone = normalizedPhone.slice(1);
+    }
+
+    // Create a pending subscription record
+    let subId;
+    try {
+        const [result] = await db.promise().query(
+            `INSERT INTO provider_subscriptions (provider_id, amount, phone, status) VALUES (?, 300.00, ?, 'pending')`,
+            [providerId, normalizedPhone]
+        );
+        subId = result.insertId;
+    } catch (err) {
+        console.error("❌ Error creating subscription record:", err);
+        return res.status(500).json({ success: false, message: "❌ Server error creating subscription." });
+    }
+
+    // Try STK push (will fail gracefully if keys are not configured)
+    try {
+        const consumerKeyEnv    = process.env.MPESA_CONSUMER_KEY    || consumerKey;
+        const consumerSecretEnv = process.env.MPESA_CONSUMER_SECRET || consumerSecret;
+        const passkeyEnv        = process.env.MPESA_PASSKEY         || passkey;
+        const shortcodeEnv      = process.env.MPESA_SHORTCODE       || shortcode;
+        const callbackEnv       = process.env.MPESA_CALLBACK_URL    || callbackURL;
+
+        if (consumerKeyEnv === "YOUR_CONSUMER_KEY") {
+            // Keys not configured — return pending state, user must use manual ref
+            return res.json({
+                success: true,
+                stkPushed: false,
+                subscriptionId: subId,
+                message: "⚠️ M-Pesa STK push not configured. Please use the manual payment option below.",
+                manualPayment: true
+            });
+        }
+
+        const auth = Buffer.from(`${consumerKeyEnv}:${consumerSecretEnv}`).toString("base64");
+        const tokenRes = await axios.get(
+            "https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials",
+            { headers: { Authorization: `Basic ${auth}` } }
+        );
+        const token = tokenRes.data.access_token;
+
+        const timestamp = new Date().toISOString().replace(/[^0-9]/g, "").slice(0, 14);
+        const password  = Buffer.from(shortcodeEnv + passkeyEnv + timestamp).toString("base64");
+
+        const stkRes = await axios.post(
+            "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest",
+            {
+                BusinessShortCode: shortcodeEnv,
+                Password: password,
+                Timestamp: timestamp,
+                TransactionType: "CustomerBuyGoodsOnline",
+                Amount: 300,
+                PartyA: normalizedPhone,
+                PartyB: shortcodeEnv,
+                PhoneNumber: normalizedPhone,
+                CallBackURL: callbackEnv,
+                AccountReference: `SmartStitch-Sub-${providerId}`,
+                TransactionDesc: "SmartStitch Monthly Subscription"
+            },
+            { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
+        );
+
+        // Store checkout request ID for callback matching
+        await db.promise().query(
+            "UPDATE provider_subscriptions SET mpesa_ref = ? WHERE id = ?",
+            [stkRes.data.CheckoutRequestID, subId]
+        );
+
+        res.json({
+            success: true,
+            stkPushed: true,
+            subscriptionId: subId,
+            checkoutRequestId: stkRes.data.CheckoutRequestID,
+            message: "📲 M-Pesa prompt sent to your phone. Enter your PIN to complete payment."
+        });
+
+    } catch (stkErr) {
+        console.error("❌ STK push failed:", stkErr.response?.data || stkErr.message);
+        // STK failed but record exists — allow manual fallback
+        res.json({
+            success: true,
+            stkPushed: false,
+            subscriptionId: subId,
+            message: "⚠️ Could not send M-Pesa prompt. Please use the manual payment option.",
+            manualPayment: true
+        });
+    }
+});
+
+// M-Pesa callback — auto-activates subscription when payment confirmed
+app.post("/subscription/mpesa-callback", async (req, res) => {
+    try {
+        const body = req.body?.Body?.stkCallback;
+        if (!body) return res.json({ ResultCode: 0, ResultDesc: "Accepted" });
+
+        const resultCode = body.ResultCode;
+        const checkoutId = body.CheckoutRequestID;
+
+        if (resultCode === 0) {
+            // Payment successful
+            const items = body.CallbackMetadata?.Item || [];
+            const mpesaCode = items.find(i => i.Name === "MpesaReceiptNumber")?.Value || "";
+
+            await db.promise().query(
+                `UPDATE provider_subscriptions
+                 SET status = 'active', mpesa_ref = ?, paid_at = NOW(),
+                     expires_at = DATE_ADD(NOW(), INTERVAL 30 DAY)
+                 WHERE mpesa_ref = ? AND status = 'pending'`,
+                [mpesaCode, checkoutId]
+            );
+        } else {
+            // Payment failed/cancelled
+            await db.promise().query(
+                "UPDATE provider_subscriptions SET status = 'expired' WHERE mpesa_ref = ? AND status = 'pending'",
+                [checkoutId]
+            );
+        }
+        res.json({ ResultCode: 0, ResultDesc: "Accepted" });
+    } catch (err) {
+        console.error("❌ Subscription callback error:", err);
+        res.json({ ResultCode: 0, ResultDesc: "Accepted" });
+    }
+});
+
+// Manual M-Pesa reference submission (fallback when STK push isn't live)
+app.post("/subscription/manual-verify", async (req, res) => {
+    const { subscriptionId, mpesaRef, providerId } = req.body;
+    if (!subscriptionId || !mpesaRef || !providerId) {
+        return res.status(400).json({ success: false, message: "❌ Missing required fields." });
+    }
+
+    // Check the ref isn't already used
+    const [existing] = await db.promise().query(
+        "SELECT id FROM provider_subscriptions WHERE mpesa_ref = ? AND status = 'active'",
+        [mpesaRef.trim().toUpperCase()]
+    );
+    if (existing.length > 0) {
+        return res.status(409).json({ success: false, message: "❌ This M-Pesa reference has already been used." });
+    }
+
+    try {
+        await db.promise().query(
+            `UPDATE provider_subscriptions
+             SET status = 'active', mpesa_ref = ?, paid_at = NOW(),
+                 expires_at = DATE_ADD(NOW(), INTERVAL 30 DAY)
+             WHERE id = ? AND provider_id = ? AND status = 'pending'`,
+            [mpesaRef.trim().toUpperCase(), subscriptionId, providerId]
+        );
+        res.json({ success: true, message: "✅ Subscription activated! You can now log in." });
+    } catch (err) {
+        console.error("❌ Manual verify error:", err);
+        res.status(500).json({ success: false, message: "❌ Server error." });
+    }
+});
+
+// Check STK push payment status (polling)
+app.get("/subscription/check/:subscriptionId", async (req, res) => {
+    try {
+        const [rows] = await db.promise().query(
+            "SELECT status, expires_at FROM provider_subscriptions WHERE id = ?",
+            [req.params.subscriptionId]
+        );
+        if (!rows.length) return res.status(404).json({ success: false, message: "Not found" });
+        res.json({ success: true, status: rows[0].status, expiresAt: rows[0].expires_at });
+    } catch (err) {
+        res.status(500).json({ success: false, message: "❌ Server error" });
+    }
+});
+
+const { error } = require("console");
+const consumerKey = "YOUR_CONSUMER_KEY"; // from Daraja
+const consumerSecret = "YOUR_CONSUMER_SECRET"; // from Daraja
+const shortcode = "3326904"; // Buy Goods Till
+const passkey = "YOUR_PASSKEY"; // from Daraja
+const callbackURL = "https://your-ngrok-url.ngrok.app/api/mpesa/callback"; // use ngrok/public URL
+
+// Function: Generate access token
+async function getAccessToken() {
+  const auth = Buffer.from(`${consumerKey}:${consumerSecret}`).toString("base64");
+  const response = await axios.get(
+    "https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials",
+    { headers: { Authorization: `Basic ${auth}` } }
+  );
+  return response.data.access_token;
+}
+
+// Route: Initiate STK Push
+app.post("/api/mpesa/stk-push", async (req, res) => {
+  try {
+    const { customerPhone, amount, customerId } = req.body;
+    if (!customerPhone || !amount || !customerId) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+
+    const token = await getAccessToken();
+
+    const timestamp = new Date()
+      .toISOString()
+      .replace(/[^0-9]/g, "")
+      .slice(0, 14);
+
+    const password = Buffer.from(shortcode + passkey + timestamp).toString("base64");
+
+    const stkRequest = {
+      BusinessShortCode: shortcode,
+      Password: password,
+      Timestamp: timestamp,
+      TransactionType: "CustomerPayBillOnline",
+      Amount: amount,
+      PartyA: customerPhone,
+      PartyB: shortcode,
+      PhoneNumber: customerPhone,
+      CallBackURL: callbackURL,
+      AccountReference: `Customer${customerId}`,
+      TransactionDesc: "Test Payment",
+    };
+
+    const response = await axios.post(
+      "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest",
+      stkRequest,
+      { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
+    );
+
+    res.json({
+      message: "M-Pesa payment request sent. Enter your PIN on your phone.",
+      transactionId: response.data.CheckoutRequestID,
+    });
+  } catch (error) {
+    console.error("STK Push Error:", error.response?.data || error.message);
+    res.status(500).json({ message: "Payment initiation failed." });
+  }
+});
+
+// Route: Callback
+app.post("/api/mpesa/callback", (req, res) => {
+  console.log("M-Pesa Callback:", JSON.stringify(req.body, null, 2));
+  res.json({ message: "Callback received" });
+});
+
+// Serve static files from the 'uploads' directory
+app.use('/uploads', express.static('uploads'));
+
+// ✅ Serve all HTML/CSS/JS frontend files from the project root
+app.use(express.static(path.join(__dirname)));
+
+app.post("/ask-ai", async (req, res) => {
+  try {
+    const { question } = req.body;
+
+    if (!question || !question.trim()) {
+      return res.status(400).json({ success: false, message: "❌ Question is required." });
+    }
+
+    if (!process.env.OPENROUTER_API_KEY) {
+      console.error("❌ OPENROUTER_API_KEY is not set in .env");
+      return res.status(500).json({ success: false, message: "❌ AI service not configured. Contact admin." });
+    }
+
+    // ── Model fallback chain — tries each in order until one succeeds ──────
+    const models = [
+      "google/gemma-3-12b-it:free",
+      "google/gemma-4-31b-it:free",
+      "meta-llama/llama-3.3-70b-instruct:free",
+      "mistralai/devstral-small:free",
+    ];
+
+    const systemPrompt = `You are an expert master tailor and fashion consultant with 20+ years of experience in bespoke tailoring, garment construction, and fashion design. You specialize in:
+
+TAILORING & GARMENT CONSTRUCTION:
+- Taking and interpreting body measurements (bust, waist, hips, inseam, shoulder width, sleeve length, back length, etc.)
+- Pattern making, cutting, and sewing techniques for dresses, suits, trousers, shirts, skirts, coats, and traditional garments
+- Fitting adjustments: taking in/letting out seams, hemming, altering sleeves, adjusting darts and pleats
+- Garment construction order, seam allowances, and finishing techniques (serging, French seams, Hong Kong finish)
+- Understanding ease (wearing ease vs design ease) and how it affects fit
+
+FABRICS & MATERIALS:
+- Properties of fabrics: cotton, linen, silk, wool, chiffon, satin, velvet, denim, polyester, spandex, organza, tulle, ankara/kitenge, kente, and more
+- Fabric care: washing, ironing temperatures, dry cleaning, storage
+- Fabric quantity calculations for different garment types and sizes
+- Interfacing, lining, underlining, and interlining choices
+- Fabric shrinkage, grain lines, and nap direction
+
+FASHION & STYLE:
+- Current and classic fashion trends for formal, casual, office, and traditional wear
+- African fashion: ankara prints, kitenge, kente, aso-oke, and other traditional fabrics and styles
+- Body type dressing: what styles flatter different body shapes (pear, apple, hourglass, rectangle, inverted triangle)
+- Color theory, pattern mixing, and accessorizing
+- Occasion dressing: weddings, funerals, office, parties, church, graduations
+
+BUSINESS & PRICING:
+- Estimating tailoring costs and pricing garments
+- Turnaround times for different garment types
+- Client communication and managing expectations
+- Order tracking and delivery
+
+Always give practical, specific, actionable advice. When discussing measurements, always specify the unit (cm or inches). When recommending fabrics, mention where they can typically be sourced. Keep responses clear and friendly. If a question is outside tailoring/fashion, politely redirect to your area of expertise.`;
+
+    let lastError = null;
+
+    for (const model of models) {
+      try {
+        console.log(`🤖 Trying model: ${model}`);
+        const response = await axios.post(
+          "https://openrouter.ai/api/v1/chat/completions",
+          {
+            model,
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user",   content: question },
+            ],
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+              "Content-Type": "application/json",
+              "HTTP-Referer": "http://localhost:5501",
+              "X-Title": "SmartServe SMEs Tailoring AI",
+            },
+            timeout: 30000, // 30s per model attempt
+          }
+        );
+
+        const reply = response.data?.choices?.[0]?.message?.content;
+        if (reply && reply.trim()) {
+          console.log(`✅ Got reply from: ${model}`);
+          return res.json({ success: true, reply, model });
+        }
+        // Empty reply — try next model
+        console.warn(`⚠️ Empty reply from ${model}, trying next…`);
+      } catch (modelErr) {
+        const status = modelErr.response?.status;
+        const errMsg = modelErr.response?.data?.error?.message || modelErr.message;
+        console.warn(`⚠️ Model ${model} failed (${status}): ${errMsg}`);
+        lastError = errMsg;
+        // Rate limited or unavailable — try next model
+        if (status === 429 || status === 503 || status === 502) continue;
+        // Other error on first model — still try the rest
+        continue;
+      }
+    }
+
+    // All models failed
+    console.error("❌ All AI models failed. Last error:", lastError);
+    res.status(503).json({
+      success: false,
+      message: "❌ AI is temporarily unavailable. All models are busy — please try again in a moment.",
+    });
+
+  } catch (error) {
+    const errData = error.response?.data;
+    const errMsg  = error.message;
+    console.error("❌ AI request failed:", errData || errMsg);
+    res.status(500).json({
+      success: false,
+      message: errData?.error?.message || errData?.message || "❌ AI request failed. Please try again.",
+    });
+  }
+});
+
+// ============================================================
+// ✅ DELIVERY PREFERENCE ROUTES
+// ============================================================
+
+// Save / update delivery preference
+app.post("/delivery-preference", async (req, res) => {
+  const { customerId, designerId, deliveryType, address, locationNotes } = req.body;
+  if (!customerId || !designerId || !deliveryType) {
+    return res.status(400).json({ success: false, message: "❌ Missing required fields." });
+  }
+  if (!["pickup", "delivery"].includes(deliveryType)) {
+    return res.status(400).json({ success: false, message: "❌ deliveryType must be 'pickup' or 'delivery'." });
+  }
+  try {
+    await db.promise().query(
+      `INSERT INTO delivery_preferences (customer_id, designer_id, delivery_type, address, location_notes)
+       VALUES (?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE
+         delivery_type = VALUES(delivery_type),
+         address = VALUES(address),
+         location_notes = VALUES(location_notes),
+         updated_at = NOW()`,
+      [customerId, designerId, deliveryType, address || null, locationNotes || null]
+    );
+    res.json({ success: true, message: "✅ Delivery preference saved." });
+  } catch (err) {
+    console.error("❌ Error saving delivery preference:", err);
+    res.status(500).json({ success: false, message: "❌ Server error." });
+  }
+});
+
+// Get delivery preference for a customer (optionally filtered by designer)
+app.get("/delivery-preference/:customerId/:designerId", async (req, res) => {
+  const { customerId, designerId } = req.params;
+  try {
+    const [rows] = await db.promise().query(
+      "SELECT * FROM delivery_preferences WHERE customer_id = ? AND designer_id = ? LIMIT 1",
+      [customerId, designerId]
+    );
+    if (rows.length === 0) {
+      return res.json({ success: true, preference: null });
+    }
+    res.json({ success: true, preference: rows[0] });
+  } catch (err) {
+    console.error("❌ Error fetching delivery preference:", err);
+    res.status(500).json({ success: false, message: "❌ Server error." });
+  }
+});
+
+// ✅ Fetch customer payments (for designer dashboard)
+app.get("/customer-payments/:customerId", async (req, res) => {
+  const { customerId } = req.params;
+  try {
+    // Try mpesa_payments table first, fall back gracefully if it doesn't exist
+    const [rows] = await db.promise().query(
+      `SELECT id, amount, status, created_at AS date
+       FROM mpesa_payments
+       WHERE customer_id = ?
+       ORDER BY created_at DESC`,
+      [customerId]
+    );
+    res.json({ success: true, payments: rows });
+  } catch (err) {
+    // Table may not exist yet — return empty rather than crashing
+    console.warn("⚠️ customer-payments query failed (table may not exist):", err.message);
+    res.json({ success: true, payments: [] });
+  }
+});
+
+// ============================================================
+// ✅ DESIGNER INVENTORY — all customer records in one place
+// ============================================================
+
+app.get("/designer-inventory/:designerId", async (req, res) => {
+  const { designerId } = req.params;
+  if (!designerId) return res.status(400).json({ success: false, message: "❌ designerId required" });
+
+  try {
+    // 1. All customers assigned to this designer
+    const [customers] = await db.promise().query(
+      `SELECT id, name, email FROM users WHERE provider_id = ? AND role = 'customer'`,
+      [designerId]
+    );
+
+    // 2. All designs uploaded for this designer
+    const [designs] = await db.promise().query(
+      `SELECT cd.id, cd.customer_id, cd.file_path, cd.uploaded_at AS created_at, u.name AS customer_name
+       FROM customer_designs cd
+       JOIN users u ON cd.customer_id = u.id
+       WHERE cd.designer_id = ?
+       ORDER BY cd.uploaded_at DESC`,
+      [designerId]
+    );
+
+    // 3. All measurements submitted to this designer
+    const [measurements] = await db.promise().query(
+      `SELECT cm.id, cm.user_id AS customer_id, cm.garment_type, cm.measurements_json, cm.created_at, u.name AS customer_name
+       FROM customer_measurements cm
+       JOIN users u ON cm.user_id = u.id
+       WHERE cm.designer_id = ?
+       ORDER BY cm.created_at DESC`,
+      [designerId]
+    );
+
+    // 4. All delivery preferences for this designer
+    const [deliveries] = await db.promise().query(
+      `SELECT dp.id, dp.customer_id, dp.delivery_type, dp.address, dp.location_notes, dp.updated_at, u.name AS customer_name
+       FROM delivery_preferences dp
+       JOIN users u ON dp.customer_id = u.id
+       WHERE dp.designer_id = ?
+       ORDER BY dp.updated_at DESC`,
+      [designerId]
+    );
+
+    // 5. All previews uploaded by this designer
+    const [previews] = await db.promise().query(
+      `SELECT pp.id, pp.customer_id, pp.image_url, pp.uploaded_at AS created_at, u.name AS customer_name
+       FROM product_previews pp
+       JOIN users u ON pp.customer_id = u.id
+       WHERE pp.admin_id = ?
+       ORDER BY pp.uploaded_at DESC`,
+      [designerId]
+    );
+
+    // Summary stats
+    const stats = {
+      totalCustomers:    customers.length,
+      totalDesigns:      designs.length,
+      totalMeasurements: measurements.length,
+      totalDeliveries:   deliveries.length,
+      totalPreviews:     previews.length,
+      pickupCount:       deliveries.filter(d => d.delivery_type === "pickup").length,
+      deliveryCount:     deliveries.filter(d => d.delivery_type === "delivery").length,
+    };
+
+    res.json({
+      success: true,
+      stats,
+      customers,
+      designs,
+      measurements: measurements.map(m => ({
+        ...m,
+        measurements: (() => { try { return JSON.parse(m.measurements_json); } catch { return {}; } })()
+      })),
+      deliveries,
+      previews
+    });
+
+  } catch (err) {
+    console.error("❌ Error fetching designer inventory:", err);
+    res.status(500).json({ success: false, message: "❌ Server error" });
+  }
+});
+
+// ============================================================
+// ✅ BOUTIQUE ROUTES
+// ============================================================
+
+// -- Products --
+app.get("/boutique/products/:providerId", async (req, res) => {
+  try {
+    const [rows] = await db.promise().query(
+      "SELECT * FROM boutique_products WHERE provider_id = ? ORDER BY created_at DESC",
+      [req.params.providerId]
+    );
+    res.json({ success: true, products: rows });
+  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+app.post("/boutique/products", upload.single("image"), async (req, res) => {
+  const { providerId, name, category, price, sizes, stock } = req.body;
+  const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
+  try {
+    await db.promise().query(
+      "INSERT INTO boutique_products (provider_id, name, category, price, sizes, stock, image_url) VALUES (?,?,?,?,?,?,?)",
+      [providerId, name, category, price, sizes, stock, imageUrl]
+    );
+    res.json({ success: true, message: "✅ Product added." });
+  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+app.delete("/boutique/products/:id", async (req, res) => {
+  try {
+    await db.promise().query("DELETE FROM boutique_products WHERE id = ?", [req.params.id]);
+    res.json({ success: true, message: "✅ Product deleted." });
+  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// -- Orders --
+app.get("/boutique/orders/customer/:customerId", async (req, res) => {
+  try {
+    const [rows] = await db.promise().query(
+      "SELECT o.*, p.name AS provider_name FROM boutique_orders o LEFT JOIN users p ON o.provider_id = p.id WHERE o.customer_id = ? ORDER BY o.created_at DESC",
+      [req.params.customerId]
+    );
+    res.json({ success: true, orders: rows });
+  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+app.get("/boutique/orders/provider/:providerId", async (req, res) => {
+  try {
+    const [rows] = await db.promise().query(
+      "SELECT o.*, u.name AS customer_name FROM boutique_orders o LEFT JOIN users u ON o.customer_id = u.id WHERE o.provider_id = ? ORDER BY o.created_at DESC",
+      [req.params.providerId]
+    );
+    res.json({ success: true, orders: rows });
+  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+app.post("/boutique/orders", async (req, res) => {
+  const { customerId, providerId, productId, itemName, size, quantity, totalPrice } = req.body;
+  try {
+    await db.promise().query(
+      "INSERT INTO boutique_orders (customer_id, provider_id, product_id, item_name, size, quantity, total_price) VALUES (?,?,?,?,?,?,?)",
+      [customerId, providerId, productId, itemName, size, quantity, totalPrice]
+    );
+    res.json({ success: true, message: "✅ Order placed." });
+  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+app.put("/boutique/orders/:id/status", async (req, res) => {
+  try {
+    await db.promise().query("UPDATE boutique_orders SET status = ? WHERE id = ?", [req.body.status, req.params.id]);
+    res.json({ success: true, message: "✅ Order status updated." });
+  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// -- Fittings --
+app.get("/boutique/fittings/customer/:customerId", async (req, res) => {
+  try {
+    const [rows] = await db.promise().query(
+      "SELECT f.*, u.name AS provider_name FROM boutique_fittings f LEFT JOIN users u ON f.provider_id = u.id WHERE f.customer_id = ? ORDER BY f.fitting_date ASC",
+      [req.params.customerId]
+    );
+    res.json({ success: true, fittings: rows });
+  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+app.get("/boutique/fittings/provider/:providerId", async (req, res) => {
+  try {
+    const [rows] = await db.promise().query(
+      "SELECT f.*, u.name AS customer_name FROM boutique_fittings f LEFT JOIN users u ON f.customer_id = u.id WHERE f.provider_id = ? ORDER BY f.fitting_date ASC",
+      [req.params.providerId]
+    );
+    res.json({ success: true, fittings: rows });
+  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+app.post("/boutique/fittings", async (req, res) => {
+  const { customerId, providerId, fittingDate, fittingTime, items } = req.body;
+  try {
+    await db.promise().query(
+      "INSERT INTO boutique_fittings (customer_id, provider_id, fitting_date, fitting_time, items) VALUES (?,?,?,?,?)",
+      [customerId, providerId, fittingDate, fittingTime, items]
+    );
+    res.json({ success: true, message: "✅ Fitting booked." });
+  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+app.put("/boutique/fittings/:id/status", async (req, res) => {
+  try {
+    await db.promise().query("UPDATE boutique_fittings SET status = ? WHERE id = ?", [req.body.status, req.params.id]);
+    res.json({ success: true, message: "✅ Fitting status updated." });
+  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// -- Wishlist --
+app.get("/boutique/wishlist/:customerId", async (req, res) => {
+  try {
+    const [rows] = await db.promise().query(
+      "SELECT * FROM boutique_wishlist WHERE customer_id = ? ORDER BY created_at DESC",
+      [req.params.customerId]
+    );
+    res.json({ success: true, wishlist: rows });
+  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+app.post("/boutique/wishlist", async (req, res) => {
+  const { customerId, itemName, price } = req.body;
+  try {
+    await db.promise().query(
+      "INSERT INTO boutique_wishlist (customer_id, item_name, price) VALUES (?,?,?)",
+      [customerId, itemName, price]
+    );
+    res.json({ success: true, message: "✅ Added to wishlist." });
+  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+app.delete("/boutique/wishlist/:id", async (req, res) => {
+  try {
+    await db.promise().query("DELETE FROM boutique_wishlist WHERE id = ?", [req.params.id]);
+    res.json({ success: true, message: "✅ Removed from wishlist." });
+  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// -- Reviews --
+app.get("/boutique/reviews/:providerId", async (req, res) => {
+  try {
+    const [rows] = await db.promise().query(
+      "SELECT r.*, u.name AS customer_name FROM boutique_reviews r LEFT JOIN users u ON r.customer_id = u.id WHERE r.provider_id = ? ORDER BY r.created_at DESC",
+      [req.params.providerId]
+    );
+    res.json({ success: true, reviews: rows });
+  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+app.post("/boutique/reviews", async (req, res) => {
+  const { customerId, providerId, rating, review } = req.body;
+  try {
+    await db.promise().query(
+      "INSERT INTO boutique_reviews (customer_id, provider_id, rating, review) VALUES (?,?,?,?)",
+      [customerId, providerId, rating, review]
+    );
+    res.json({ success: true, message: "✅ Review submitted." });
+  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// -- Chat --
+app.get("/boutique/chat/:customerId/:providerId", async (req, res) => {
+  try {
+    const [rows] = await db.promise().query(
+      "SELECT * FROM boutique_chat WHERE customer_id = ? AND provider_id = ? ORDER BY created_at ASC",
+      [req.params.customerId, req.params.providerId]
+    );
+    res.json({ success: true, messages: rows });
+  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+app.post("/boutique/chat", async (req, res) => {
+  const { customerId, providerId, sender, message } = req.body;
+  if (!customerId || !providerId || !sender || !message) {
+    return res.status(400).json({ success: false, message: "Missing fields." });
+  }
+  try {
+    await db.promise().query(
+      "INSERT INTO boutique_chat (customer_id, provider_id, sender, message) VALUES (?,?,?,?)",
+      [customerId, providerId, sender, message]
+    );
+    res.json({ success: true, message: "✅ Message sent." });
+  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// -- Inventory (provider stock update) --
+app.put("/boutique/products/:id/stock", async (req, res) => {
+  try {
+    await db.promise().query("UPDATE boutique_products SET stock = ? WHERE id = ?", [req.body.stock, req.params.id]);
+    res.json({ success: true, message: "✅ Stock updated." });
+  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+// ============================================================
+// ✅ TAILORING (DESIGNER) DELIVERED INVENTORY
+// ============================================================
+
+// Create tailoring delivered inventory table if it doesn't exist
+db.query(`
+  CREATE TABLE IF NOT EXISTS tailoring_delivered_inventory (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    designer_id INT NOT NULL,
+    customer_id INT NOT NULL,
+    customer_name VARCHAR(200),
+    garment_type VARCHAR(100),
+    delivery_type ENUM('pickup','delivery') DEFAULT 'pickup',
+    address TEXT,
+    notes TEXT,
+    delivered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )
+`, (err) => { if (err) console.error("❌ tailoring_delivered_inventory table error:", err.message); });
+
+// -- Mark a tailoring order as delivered (saves to tailoring_delivered_inventory) --
+app.post("/tailoring/mark-delivered", async (req, res) => {
+  const { designerId, customerId } = req.body;
+  if (!designerId || !customerId) {
+    return res.status(400).json({ success: false, message: "❌ designerId and customerId are required." });
+  }
+  try {
+    // Get customer info
+    const [users] = await db.promise().query(
+      "SELECT id, name FROM users WHERE id = ?",
+      [customerId]
+    );
+    if (!users.length) {
+      return res.status(404).json({ success: false, message: "❌ Customer not found." });
+    }
+    const customer = users[0];
+
+    // Get delivery preference
+    const [prefs] = await db.promise().query(
+      "SELECT * FROM delivery_preferences WHERE customer_id = ? AND designer_id = ? LIMIT 1",
+      [customerId, designerId]
+    );
+    const pref = prefs[0] || {};
+
+    // Get latest garment type from measurements
+    const [meas] = await db.promise().query(
+      "SELECT garment_type FROM measurements WHERE customer_id = ? AND designer_id = ? ORDER BY created_at DESC LIMIT 1",
+      [customerId, designerId]
+    );
+    const garmentType = meas[0]?.garment_type || "Custom Garment";
+
+    // Check if already delivered today (prevent duplicates)
+    const [existing] = await db.promise().query(
+      `SELECT id FROM tailoring_delivered_inventory
+       WHERE designer_id = ? AND customer_id = ?
+       AND DATE(delivered_at) = CURDATE()`,
+      [designerId, customerId]
+    );
+    if (existing.length) {
+      return res.json({ success: true, message: "ℹ️ Already marked as delivered today." });
+    }
+
+    // Insert into delivered inventory
+    await db.promise().query(
+      `INSERT INTO tailoring_delivered_inventory
+         (designer_id, customer_id, customer_name, garment_type, delivery_type, address, notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        designerId,
+        customerId,
+        customer.name,
+        garmentType,
+        pref.delivery_type || "pickup",
+        pref.address || null,
+        pref.location_notes || null
+      ]
+    );
+
+    res.json({ success: true, message: "✅ Order marked as delivered and saved to inventory." });
+  } catch (err) {
+    console.error("❌ Error marking tailoring delivery:", err);
+    res.status(500).json({ success: false, message: "❌ Server error." });
+  }
+});
+
+// -- Get tailoring delivered inventory for a designer --
+app.get("/tailoring/delivered-inventory/:designerId", async (req, res) => {
+  try {
+    const [rows] = await db.promise().query(
+      `SELECT * FROM tailoring_delivered_inventory WHERE designer_id = ? ORDER BY delivered_at DESC`,
+      [req.params.designerId]
+    );
+    res.json({ success: true, items: rows });
+  } catch (err) {
+    console.error("❌ Error fetching tailoring delivered inventory:", err);
+    res.status(500).json({ success: false, message: "❌ Server error." });
+  }
+});
+
+// -- Mark order as delivered + save to delivered inventory --
+app.put("/boutique/orders/:id/deliver", async (req, res) => {
+  const orderId = req.params.id;
+  try {
+    // Fetch the order first
+    const [orders] = await db.promise().query(
+      `SELECT o.*, u.name AS customer_name
+       FROM boutique_orders o
+       LEFT JOIN users u ON o.customer_id = u.id
+       WHERE o.id = ?`,
+      [orderId]
+    );
+    if (!orders.length) {
+      return res.status(404).json({ success: false, message: "❌ Order not found." });
+    }
+    const order = orders[0];
+    if (order.status === "delivered") {
+      return res.json({ success: true, message: "ℹ️ Order already marked as delivered." });
+    }
+
+    // Update order status
+    await db.promise().query(
+      "UPDATE boutique_orders SET status = 'delivered', delivered_at = NOW() WHERE id = ?",
+      [orderId]
+    );
+
+    // Save to delivered inventory log
+    await db.promise().query(
+      `INSERT INTO boutique_delivered_inventory
+         (order_id, provider_id, customer_id, item_name, size, quantity, total_price, customer_name, delivered_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+      [orderId, order.provider_id, order.customer_id, order.item_name, order.size,
+       order.quantity, order.total_price, order.customer_name]
+    );
+
+    res.json({ success: true, message: "✅ Order marked as delivered and saved to inventory." });
+  } catch (e) {
+    console.error("❌ Error marking delivery:", e);
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+// -- Get delivered inventory for a provider --
+app.get("/boutique/delivered-inventory/:providerId", async (req, res) => {
+  try {
+    const [rows] = await db.promise().query(
+      `SELECT * FROM boutique_delivered_inventory WHERE provider_id = ? ORDER BY delivered_at DESC`,
+      [req.params.providerId]
+    );
+    res.json({ success: true, items: rows });
+  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+});

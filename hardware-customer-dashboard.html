@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hardware - Customer Dashboard</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=Roboto+Slab:wght@700&display=swap');
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Poppins', sans-serif; display: flex; min-height: 100vh; background: linear-gradient(rgba(0,0,0,0.65),rgba(0,0,0,0.65)), url('https://images.unsplash.com/photo-1504148455328-c376907d081c?w=1400') no-repeat center/cover fixed; color: #f0f0f0; }
+    .sidebar { width: 260px; background: rgba(30,50,20,0.95); backdrop-filter: blur(8px); height: 100vh; padding: 30px 20px; position: fixed; display: flex; flex-direction: column; box-shadow: 4px 0 20px rgba(0,0,0,0.4); }
+    .sidebar h2 { font-family: 'Roboto Slab', serif; font-size: 1.2rem; color: #c8e6a0; text-align: center; margin-bottom: 30px; }
+    .sidebar a { display: block; color: #fff; text-decoration: none; padding: 12px 16px; margin: 6px 0; border-radius: 8px; font-weight: 500; cursor: pointer; transition: all 0.3s; }
+    .sidebar a:hover { background: rgba(255,255,255,0.2); transform: translateX(6px); }
+    .content { margin-left: 260px; flex: 1; padding: 40px; overflow-y: auto; }
+    .tab-content { display: none; animation: fadeIn 0.5s ease; }
+    .tab-content.active { display: block; }
+    .card { background: rgba(255,255,255,0.1); backdrop-filter: blur(6px); border-radius: 12px; padding: 24px; margin-bottom: 20px; }
+    h1 { font-family: 'Roboto Slab', serif; font-size: 2rem; margin-bottom: 8px; color: #c8e6a0; }
+    h2 { font-family: 'Roboto Slab', serif; color: #c8e6a0; margin-bottom: 16px; }
+    p { color: #ddd; line-height: 1.7; }
+    .cat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; margin-top: 10px; }
+    .cat-item { background: rgba(255,255,255,0.12); border-radius: 10px; padding: 18px; text-align: center; cursor: pointer; transition: all 0.3s; }
+    .cat-item:hover { background: rgba(255,255,255,0.22); transform: translateY(-4px); }
+    .cat-item .icon { font-size: 2rem; margin-bottom: 8px; }
+    .cat-item .name { font-size: 0.85rem; font-weight: 600; }
+    select, input, textarea { width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.15); color: #fff; font-family: 'Poppins', sans-serif; margin-bottom: 14px; }
+    select option { color: #111; }
+    button { background: linear-gradient(135deg, #2e7d32, #43a047); color: #fff; border: none; padding: 11px 26px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s; }
+    button:hover { transform: scale(1.05); opacity: 0.9; }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <h2>🔧 Hardware Customer</h2>
+    <a onclick="showTab('home')">🏠 Home</a>
+    <a onclick="showTab('choose-provider')">🤝 Choose Provider</a>
+    <a onclick="showTab('browse')">🔍 Browse Products</a>
+    <a onclick="showTab('order')">🛒 Place Order</a>
+    <a onclick="showTab('orders')">📦 My Orders</a>
+    <a onclick="showTab('quote')">📋 Request Quote</a>
+    <a onclick="showTab('support')">🛠️ Support</a>
+    <a onclick="logout()">🚪 Logout</a>
+  </div>
+
+  <div class="content">
+    <div id="home" class="tab-content active">
+      <h1>Hardware Store</h1>
+      <p>Browse building materials, tools, and supplies. Place orders and request quotes for bulk purchases.</p>
+      <div class="cat-grid" style="margin-top:30px;">
+        <div class="cat-item" onclick="showTab('browse')"><div class="icon">🔍</div><div class="name">Browse</div></div>
+        <div class="cat-item" onclick="showTab('order')"><div class="icon">🛒</div><div class="name">Order</div></div>
+        <div class="cat-item" onclick="showTab('quote')"><div class="icon">📋</div><div class="name">Get Quote</div></div>
+        <div class="cat-item" onclick="showTab('orders')"><div class="icon">📦</div><div class="name">My Orders</div></div>
+      </div>
+    </div>
+
+    <div id="choose-provider" class="tab-content">
+  <h2>Choose Your Provider</h2>
+  <p style="margin-bottom:20px;">Select a provider below. They will be able to see and serve you.</p>
+  <div id="provider-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-top:10px;"></div>
+  <div id="provider-status" style="margin-top:16px;font-size:0.95rem;"></div>
+</div>
+
+    <div id="browse" class="tab-content">
+      <h2>Browse Products</h2>
+      <div class="cat-grid">
+        <div class="cat-item"><div class="icon">🧱</div><div class="name">Cement & Blocks</div></div>
+        <div class="cat-item"><div class="icon">🪵</div><div class="name">Timber & Wood</div></div>
+        <div class="cat-item"><div class="icon">🔩</div><div class="name">Bolts & Nails</div></div>
+        <div class="cat-item"><div class="icon">🪣</div><div class="name">Paints</div></div>
+        <div class="cat-item"><div class="icon">💡</div><div class="name">Electrical</div></div>
+        <div class="cat-item"><div class="icon">🚿</div><div class="name">Plumbing</div></div>
+        <div class="cat-item"><div class="icon">🔨</div><div class="name">Hand Tools</div></div>
+        <div class="cat-item"><div class="icon">⚙️</div><div class="name">Power Tools</div></div>
+      </div>
+    </div>
+
+    <div id="order" class="tab-content">
+      <h2>Place an Order</h2>
+      <div class="card">
+        <label>Product Category</label>
+        <select><option>Cement & Blocks</option><option>Timber</option><option>Paints</option><option>Electrical</option><option>Plumbing</option><option>Tools</option></select>
+        <label>Product Name / Description</label>
+        <input type="text" placeholder="e.g. Portland Cement 50kg bag">
+        <label>Quantity</label>
+        <input type="number" min="1" value="1">
+        <label>Delivery Address</label>
+        <textarea placeholder="Enter delivery address or select pickup..."></textarea>
+        <button>Place Order</button>
+      </div>
+    </div>
+
+    <div id="orders" class="tab-content">
+      <h2>My Orders</h2>
+      <div class="card"><p>🧱 <strong>Portland Cement x10 bags</strong> — 9 May 2026 — <span style="color:#b3ffb3;">Delivered</span></p></div>
+      <div class="card"><p>🪵 <strong>Timber 2x4 x20 pieces</strong> — 11 May 2026 — <span style="color:#ffe0a0;">Processing</span></p></div>
+    </div>
+
+    <div id="quote" class="tab-content">
+      <h2>Request a Quote</h2>
+      <div class="card">
+        <label>Project Description</label>
+        <textarea placeholder="Describe your project and materials needed..."></textarea>
+        <label>Estimated Quantity</label>
+        <input type="text" placeholder="e.g. 100 bags cement, 50 iron sheets">
+        <label>Your Phone Number</label>
+        <input type="tel" placeholder="07XX XXX XXX">
+        <button>Request Quote</button>
+      </div>
+    </div>
+
+    <div id="support" class="tab-content">
+      <h2>Customer Support</h2>
+      <div class="card">
+        <label>Issue Type</label>
+        <select><option>Wrong Item Delivered</option><option>Damaged Goods</option><option>Delayed Delivery</option><option>Other</option></select>
+        <label>Describe Your Issue</label>
+        <textarea placeholder="Tell us what happened..."></textarea>
+        <button>Submit Ticket</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const BASE = 'http://localhost:5501';
+
+    // Auth guard — runs immediately on page load
+    (function() {
+      if (!localStorage.getItem('user')) {
+        window.location.replace('business-select.html');
+      }
+      history.replaceState(null, '', window.location.href);
+    })();
+
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const businessType = user.businessType || '';
+
+    function showTab(id) {
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      if (id === 'choose-provider') loadProviders();
+    }
+
+    function loadProviders() {
+      const list = document.getElementById('provider-list');
+      const status = document.getElementById('provider-status');
+      list.innerHTML = '<p style="color:#ddd;">Loading providers...</p>';
+      status.innerHTML = '';
+      fetch(`${BASE}/available-providers?businessType=${encodeURIComponent(businessType)}`)
+        .then(r => r.json())
+        .then(providers => {
+          if (!providers.length) {
+            list.innerHTML = '<p style="color:#ddd;">No providers available at the moment.</p>';
+            return;
+          }
+          list.innerHTML = providers.map(p => `
+            <div style="background:rgba(255,255,255,0.12);border-radius:10px;padding:18px;text-align:center;">
+              <div style="font-size:1.5rem;margin-bottom:8px;">🏪</div>
+              <div style="font-weight:600;margin-bottom:4px;">${p.name}</div>
+              <div style="font-size:0.8rem;color:#ddd;margin-bottom:12px;">${p.email || ''}</div>
+              <button onclick="selectProvider(${p.id}, '${(p.name||'').replace(/'/g,"\\'")}', this)">Select</button>
+            </div>
+          `).join('');
+        })
+        .catch(() => {
+          list.innerHTML = '<p style="color:#ffaaaa;">Failed to load providers. Please try again.</p>';
+        });
+    }
+
+    function selectProvider(providerId, providerName, btn) {
+      btn.disabled = true;
+      btn.textContent = 'Selecting...';
+      fetch(`${BASE}/select-provider`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customerId: user.id, providerId })
+      })
+        .then(r => r.json())
+        .then(() => {
+          document.getElementById('provider-status').innerHTML =
+            `<span style="color:#b3ffb3;">✅ You have selected <strong>${providerName}</strong> as your provider.</span>`;
+          btn.textContent = '✅ Selected';
+        })
+        .catch(() => {
+          document.getElementById('provider-status').innerHTML =
+            '<span style="color:#ffaaaa;">❌ Failed to select provider. Please try again.</span>';
+          btn.disabled = false;
+          btn.textContent = 'Select';
+        });
+    }
+
+    function logout() {
+      localStorage.removeItem('user');
+      localStorage.removeItem('businessType');
+      window.location.replace('business-select.html');
+    }
+  </script>
+  <script src="lang.js"></script>
+</body>
+</html>

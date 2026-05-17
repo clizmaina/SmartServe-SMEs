@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Provider Subscription – SmartServe SMEs</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@300;400;500;600&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #0d0d1a 0%, #1a0a2e 50%, #0a1a2e 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 30px 16px;
+      color: #e8e0f0;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 520px;
+      animation: fadeInUp 0.6s ease-out;
+    }
+
+    /* ── Header ── */
+    .brand {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .brand-icon {
+      font-size: 3rem;
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    .brand h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.8rem;
+      color: #d4a843;
+      text-shadow: 0 2px 10px rgba(212,168,67,0.4);
+    }
+
+    .brand p {
+      color: rgba(255,255,255,0.5);
+      font-size: 0.85rem;
+      margin-top: 4px;
+    }
+
+    /* ── Card ── */
+    .card {
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 20px;
+      padding: 36px 32px;
+      backdrop-filter: blur(14px);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+
+    /* ── Price badge ── */
+    .price-badge {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      background: linear-gradient(135deg, rgba(212,168,67,0.15), rgba(212,168,67,0.05));
+      border: 1px solid rgba(212,168,67,0.35);
+      border-radius: 16px;
+      padding: 20px 24px;
+      margin-bottom: 28px;
+      text-align: center;
+    }
+
+    .price-badge .amount {
+      font-size: 2.8rem;
+      font-weight: 700;
+      color: #d4a843;
+      line-height: 1;
+    }
+
+    .price-badge .period {
+      font-size: 0.82rem;
+      color: rgba(255,255,255,0.5);
+      margin-top: 4px;
+    }
+
+    .price-badge .divider-v {
+      width: 1px;
+      height: 50px;
+      background: rgba(212,168,67,0.3);
+    }
+
+    .price-badge .features {
+      text-align: left;
+    }
+
+    .price-badge .features li {
+      list-style: none;
+      font-size: 0.82rem;
+      color: rgba(255,255,255,0.75);
+      padding: 3px 0;
+    }
+
+    .price-badge .features li::before {
+      content: '✓ ';
+      color: #4ade80;
+      font-weight: 700;
+    }
+
+    /* ── Steps ── */
+    .step { display: none; }
+    .step.active { display: block; animation: fadeIn 0.4s ease; }
+
+    .step-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.2rem;
+      color: #d4a843;
+      margin-bottom: 6px;
+    }
+
+    .step-sub {
+      font-size: 0.83rem;
+      color: rgba(255,255,255,0.5);
+      margin-bottom: 22px;
+      line-height: 1.5;
+    }
+
+    /* ── Form elements ── */
+    label {
+      display: block;
+      font-size: 0.82rem;
+      color: rgba(255,255,255,0.6);
+      margin-bottom: 6px;
+    }
+
+    input[type="tel"], input[type="text"] {
+      width: 100%;
+      padding: 13px 16px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 10px;
+      color: #fff;
+      font-family: 'Poppins', sans-serif;
+      font-size: 0.95rem;
+      margin-bottom: 18px;
+      transition: border-color 0.2s;
+      outline: none;
+    }
+
+    input:focus {
+      border-color: rgba(212,168,67,0.6);
+      background: rgba(255,255,255,0.11);
+    }
+
+    input::placeholder { color: rgba(255,255,255,0.3); }
+
+    /* ── Buttons ── */
+    .btn {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 12px;
+      font-family: 'Poppins', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      margin-bottom: 10px;
+    }
+
+    .btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none !important; }
+
+    .btn-gold {
+      background: linear-gradient(135deg, #d4a843, #f0c96a);
+      color: #1a0a2e;
+    }
+
+    .btn-gold:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(212,168,67,0.4); }
+
+    .btn-outline {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.25);
+      color: rgba(255,255,255,0.7);
+      font-size: 0.85rem;
+      padding: 11px;
+    }
+
+    .btn-outline:hover:not(:disabled) { border-color: rgba(212,168,67,0.5); color: #d4a843; }
+
+    .btn-green {
+      background: linear-gradient(135deg, #1a6b4a, #2e9e6e);
+      color: #fff;
+    }
+
+    .btn-green:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(46,158,110,0.4); }
+
+    /* ── Status message ── */
+    .msg {
+      font-size: 0.88rem;
+      padding: 12px 16px;
+      border-radius: 10px;
+      margin-bottom: 16px;
+      display: none;
+      line-height: 1.5;
+    }
+
+    .msg.show { display: block; }
+    .msg.success { background: rgba(74,222,128,0.12); border: 1px solid rgba(74,222,128,0.3); color: #4ade80; }
+    .msg.error   { background: rgba(248,113,113,0.12); border: 1px solid rgba(248,113,113,0.3); color: #f87171; }
+    .msg.info    { background: rgba(212,168,67,0.12);  border: 1px solid rgba(212,168,67,0.3);  color: #f0c96a; }
+
+    /* ── Divider ── */
+    .or-divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 18px 0;
+      color: rgba(255,255,255,0.3);
+      font-size: 0.78rem;
+    }
+
+    .or-divider::before, .or-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: rgba(255,255,255,0.1);
+    }
+
+    /* ── Polling spinner ── */
+    .spinner {
+      display: inline-block;
+      width: 18px; height: 18px;
+      border: 2px solid rgba(212,168,67,0.3);
+      border-top-color: #d4a843;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+
+    /* ── Already subscribed banner ── */
+    .sub-active-banner {
+      background: rgba(74,222,128,0.1);
+      border: 1px solid rgba(74,222,128,0.3);
+      border-radius: 14px;
+      padding: 20px 24px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .sub-active-banner .icon { font-size: 2.5rem; display: block; margin-bottom: 8px; }
+    .sub-active-banner h3 { color: #4ade80; font-size: 1.1rem; margin-bottom: 4px; }
+    .sub-active-banner p  { color: rgba(255,255,255,0.6); font-size: 0.85rem; }
+
+    /* ── Footer link ── */
+    .footer-link {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 0.82rem;
+      color: rgba(255,255,255,0.4);
+    }
+
+    .footer-link a { color: #d4a843; text-decoration: none; }
+    .footer-link a:hover { text-decoration: underline; }
+
+    @keyframes fadeInUp { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes fadeIn   { from { opacity:0; } to { opacity:1; } }
+    @keyframes spin     { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <div class="brand">
+      <span class="brand-icon">✂️</span>
+      <h1>SmartServe SMEs</h1>
+      <p data-i18n="sub.tagline">Provider Monthly Subscription</p>
+    </div>
+
+    <div class="card">
+
+      <!-- Price badge -->
+      <div class="price-badge">
+        <div>
+          <div class="amount">KSh 300</div>
+          <div class="period" data-i18n="sub.permonth">per month</div>
+        </div>
+        <div class="divider-v"></div>
+        <ul class="features">
+          <li data-i18n="sub.feat1">Full dashboard access</li>
+          <li data-i18n="sub.feat2">Unlimited customers</li>
+          <li data-i18n="sub.feat3">AI assistant tools</li>
+          <li data-i18n="sub.feat4">Inventory management</li>
+        </ul>
+      </div>
+
+      <!-- Already active banner -->
+      <div id="activeSubBanner" class="sub-active-banner" style="display:none;">
+        <span class="icon">🎉</span>
+        <h3 data-i18n="sub.active.h">Subscription Active</h3>
+        <p id="activeSubExpiry" data-i18n="sub.active.p">Your subscription is valid until —</p>
+      </div>
+
+      <!-- STEP 1: Enter phone -->
+      <div id="step-phone" class="step active">
+        <div class="step-title" data-i18n="sub.step1.title">📱 Pay via M-Pesa</div>
+        <p class="step-sub" data-i18n="sub.step1.sub">Enter your M-Pesa number to receive a payment prompt for KSh 300.</p>
+
+        <div id="msgPhone" class="msg"></div>
+
+        <label for="phoneInput" data-i18n="sub.phone.label">M-Pesa Phone Number</label>
+        <input type="tel" id="phoneInput" data-i18n-placeholder="sub.phone.ph" placeholder="e.g. 0712 345 678" maxlength="13">
+
+        <button class="btn btn-gold" id="payBtn" onclick="initiatePayment()" data-i18n="sub.step1.btn">
+          📲 Send M-Pesa Prompt
+        </button>
+
+        <div class="or-divider" data-i18n="sub.or">or</div>
+
+        <button class="btn btn-outline" onclick="showManualStep()" data-i18n="sub.manual.link">
+          🧾 I already paid — enter M-Pesa code
+        </button>
+      </div>
+
+      <!-- STEP 2a: Waiting -->
+      <div id="step-waiting" class="step">
+        <div class="step-title" data-i18n="sub.wait.title">⏳ Waiting for Payment</div>
+        <p class="step-sub" data-i18n="sub.wait.sub">
+          A payment prompt has been sent to your phone.<br>
+          Enter your M-Pesa PIN to complete the KSh 300 payment.
+        </p>
+
+        <div id="msgWaiting" class="msg info show">
+          <span class="spinner"></span> <span data-i18n="sub.wait.checking">Checking payment status…</span>
+        </div>
+
+        <div class="or-divider" data-i18n="sub.or.manual">or enter code manually</div>
+
+        <label for="refInputWaiting" data-i18n="sub.code.label">M-Pesa Transaction Code</label>
+        <input type="text" id="refInputWaiting" data-i18n-placeholder="sub.code.ph" placeholder="e.g. QGH7XXXXXX" style="text-transform:uppercase;">
+
+        <button class="btn btn-green" id="verifyWaitingBtn" onclick="submitManualRef('refInputWaiting')" data-i18n="sub.confirm.btn">
+          ✅ Confirm Payment
+        </button>
+
+        <button class="btn btn-outline" style="margin-top:4px;" onclick="showStep('step-phone')" data-i18n="sub.back">
+          ← Back
+        </button>
+      </div>
+
+      <!-- STEP 2b: Manual code -->
+      <div id="step-manual" class="step">
+        <div class="step-title" data-i18n="sub.manual.title">🧾 Enter M-Pesa Code</div>
+        <p class="step-sub" data-i18n="sub.manual.sub">
+          Send <strong style="color:#d4a843;">KSh 300</strong> to Till Number
+          <strong style="color:#d4a843;">3326904</strong> (Buy Goods), then paste the confirmation code below.
+        </p>
+
+        <div id="msgManual" class="msg"></div>
+
+        <label for="refInputManual" data-i18n="sub.code.label">M-Pesa Transaction Code</label>
+        <input type="text" id="refInputManual" data-i18n-placeholder="sub.code.ph" placeholder="e.g. QGH7XXXXXX" style="text-transform:uppercase;">
+
+        <button class="btn btn-green" id="verifyManualBtn" onclick="submitManualRef('refInputManual')" data-i18n="sub.verify.btn">
+          ✅ Verify &amp; Activate
+        </button>
+
+        <button class="btn btn-outline" style="margin-top:4px;" onclick="showStep('step-phone')" data-i18n="sub.back">
+          ← Back
+        </button>
+      </div>
+
+      <!-- STEP 3: Success -->
+      <div id="step-success" class="step">
+        <div style="text-align:center; padding: 10px 0 20px;">
+          <div style="font-size:3.5rem; margin-bottom:12px;">🎉</div>
+          <div class="step-title" style="text-align:center; font-size:1.4rem;" data-i18n="sub.success.title">Subscription Activated!</div>
+          <p class="step-sub" style="text-align:center; margin-top:8px;" data-i18n="sub.success.sub">
+            Your SmartServe SMEs provider account is now active for 30 days.
+          </p>
+        </div>
+        <p id="successExpiry" style="text-align:center; color:rgba(255,255,255,0.5); font-size:0.82rem; margin-bottom:24px;"></p>
+        <button class="btn btn-gold" onclick="goToDashboard()" data-i18n="sub.dashboard.btn">
+          🚀 Go to Dashboard
+        </button>
+      </div>
+
+    </div><!-- /card -->
+
+    <div class="footer-link">
+      <a href="signin.html" data-i18n="sub.back.login">← Back to Login</a>
+    </div>
+
+  </div><!-- /container -->
+
+  <script>
+    const BASE = 'http://localhost:5501';
+
+    // Retrieve pending provider info set by signup or login redirect
+    const providerId   = localStorage.getItem('pendingProviderId');
+    const providerRole = localStorage.getItem('pendingProviderRole') || 'designer';
+    const businessType = localStorage.getItem('businessType') || '';
+
+    let currentSubId   = null;
+    let pollInterval   = null;
+
+    // ── On load: check if already subscribed ─────────────────────────────────
+    (async function init() {
+      if (!providerId) {
+        // No pending provider — redirect to login
+        window.location.replace('signin.html');
+        return;
+      }
+
+      try {
+        const res  = await fetch(`${BASE}/subscription/status/${providerId}`);
+        const data = await res.json();
+        if (data.active) {
+          showActiveBanner(data.subscription.expires_at);
+        }
+      } catch (e) { /* ignore — just show the payment form */ }
+    })();
+
+    // ── Show active subscription banner ──────────────────────────────────────
+    function showActiveBanner(expiresAt) {
+      document.getElementById('activeSubBanner').style.display = 'block';
+      document.getElementById('activeSubExpiry').textContent =
+        'Valid until: ' + new Date(expiresAt).toLocaleDateString('en-KE', { day:'2-digit', month:'long', year:'numeric' });
+      // Show go-to-dashboard button in step-phone area
+      document.getElementById('payBtn').textContent = '🚀 Go to Dashboard';
+      document.getElementById('payBtn').onclick = goToDashboard;
+      document.getElementById('phoneInput').style.display = 'none';
+      document.querySelector('#step-phone label').style.display = 'none';
+      document.querySelector('#step-phone .step-title').textContent = '✅ Already Subscribed';
+      document.querySelector('#step-phone .step-sub').textContent = 'Your subscription is active. Click below to access your dashboard.';
+      document.querySelector('#step-phone .or-divider').style.display = 'none';
+      document.querySelector('#step-phone .btn-outline').style.display = 'none';
+    }
+
+    // ── Step navigation ───────────────────────────────────────────────────────
+    function showStep(stepId) {
+      document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+      document.getElementById(stepId).classList.add('active');
+    }
+
+    function showManualStep() {
+      showStep('step-manual');
+    }
+
+    // ── Initiate M-Pesa STK push ──────────────────────────────────────────────
+    async function initiatePayment() {
+      const phone = document.getElementById('phoneInput').value.trim();
+      const msgEl = document.getElementById('msgPhone');
+
+      if (!phone) {
+        showMsg(msgEl, 'error', '⚠️ Please enter your M-Pesa phone number.');
+        return;
+      }
+
+      const btn = document.getElementById('payBtn');
+      btn.disabled = true;
+      btn.textContent = '⏳ Sending…';
+      hideMsg(msgEl);
+
+      try {
+        const res  = await fetch(`${BASE}/subscription/pay`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ providerId, phone })
+        });
+        const data = await res.json();
+
+        currentSubId = data.subscriptionId;
+
+        if (data.stkPushed) {
+          // STK push sent — go to waiting step and start polling
+          showStep('step-waiting');
+          startPolling();
+        } else if (data.manualPayment) {
+          // STK not configured — go to manual step
+          showStep('step-manual');
+          showMsg(document.getElementById('msgManual'), 'info',
+            '⚠️ Automatic prompt unavailable. Please send KSh 300 manually and enter your M-Pesa code below.');
+        } else {
+          showMsg(msgEl, 'error', data.message || '❌ Payment initiation failed.');
+        }
+      } catch (e) {
+        showMsg(msgEl, 'error', '❌ Could not connect to server. Please try again.');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '📲 Send M-Pesa Prompt';
+      }
+    }
+
+    // ── Poll for STK push confirmation ────────────────────────────────────────
+    function startPolling() {
+      let attempts = 0;
+      const maxAttempts = 24; // 2 minutes at 5s intervals
+
+      pollInterval = setInterval(async () => {
+        attempts++;
+        if (attempts > maxAttempts) {
+          clearInterval(pollInterval);
+          showMsg(document.getElementById('msgWaiting'), 'info',
+            '⏰ Payment not confirmed yet. Please enter your M-Pesa code manually below.');
+          return;
+        }
+
+        try {
+          const res  = await fetch(`${BASE}/subscription/check/${currentSubId}`);
+          const data = await res.json();
+
+          if (data.status === 'active') {
+            clearInterval(pollInterval);
+            activateSuccess(data.expiresAt);
+          }
+        } catch (e) { /* keep polling */ }
+      }, 5000);
+    }
+
+    // ── Submit manual M-Pesa reference ───────────────────────────────────────
+    async function submitManualRef(inputId) {
+      const ref   = document.getElementById(inputId).value.trim().toUpperCase();
+      const msgEl = document.getElementById(inputId === 'refInputWaiting' ? 'msgWaiting' : 'msgManual');
+      const btnId = inputId === 'refInputWaiting' ? 'verifyWaitingBtn' : 'verifyManualBtn';
+      const btn   = document.getElementById(btnId);
+
+      if (!ref || ref.length < 8) {
+        showMsg(msgEl, 'error', '⚠️ Please enter a valid M-Pesa transaction code (e.g. QGH7XXXXXX).');
+        return;
+      }
+
+      if (!currentSubId) {
+        // No STK push was done — create a pending record first
+        try {
+          const initRes  = await fetch(`${BASE}/subscription/pay`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ providerId, phone: '0700000000' }) // placeholder phone
+          });
+          const initData = await initRes.json();
+          currentSubId = initData.subscriptionId;
+        } catch (e) {
+          showMsg(msgEl, 'error', '❌ Server error. Please try again.');
+          return;
+        }
+      }
+
+      btn.disabled = true;
+      btn.textContent = '⏳ Verifying…';
+      hideMsg(msgEl);
+
+      try {
+        const res  = await fetch(`${BASE}/subscription/manual-verify`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ subscriptionId: currentSubId, mpesaRef: ref, providerId })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          clearInterval(pollInterval);
+          // Fetch updated expiry
+          const statusRes  = await fetch(`${BASE}/subscription/status/${providerId}`);
+          const statusData = await statusRes.json();
+          activateSuccess(statusData.subscription?.expires_at || null);
+        } else {
+          showMsg(msgEl, 'error', data.message || '❌ Verification failed.');
+          btn.disabled = false;
+          btn.textContent = '✅ Verify & Activate';
+        }
+      } catch (e) {
+        showMsg(msgEl, 'error', '❌ Server error. Please try again.');
+        btn.disabled = false;
+        btn.textContent = '✅ Verify & Activate';
+      }
+    }
+
+    // ── Activate success state ────────────────────────────────────────────────
+    function activateSuccess(expiresAt) {
+      if (expiresAt) {
+        document.getElementById('successExpiry').textContent =
+          'Active until: ' + new Date(expiresAt).toLocaleDateString('en-KE', { day:'2-digit', month:'long', year:'numeric' });
+      }
+      showStep('step-success');
+    }
+
+    // ── Go to dashboard ───────────────────────────────────────────────────────
+    function goToDashboard() {
+      // Save user to localStorage so dashboard auth check passes
+      localStorage.setItem('user', JSON.stringify({
+        id: parseInt(providerId),
+        role: providerRole,
+        businessType: businessType
+      }));
+      // Clear pending keys
+      localStorage.removeItem('pendingProviderId');
+      localStorage.removeItem('pendingProviderRole');
+
+      // Redirect to the correct provider dashboard
+      const dashboardMap = {
+        tailoring:  'designer-dashboard.html',
+        boutique:   'boutique-provider-dashboard.html',
+        salon:      'salon-provider-dashboard.html',
+        restaurant: 'restaurant-provider-dashboard.html',
+        hardware:   'hardware-provider-dashboard.html',
+        cyber:      'cyber-provider-dashboard.html',
+        agrovet:    'agrovet-provider-dashboard.html'
+      };
+      window.location.href = dashboardMap[businessType] || 'signin.html';
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+    function showMsg(el, type, text) {
+      el.className = `msg ${type} show`;
+      el.innerHTML = text;
+    }
+
+    function hideMsg(el) {
+      el.className = 'msg';
+      el.textContent = '';
+    }
+  </script>
+  <script src="lang.js"></script>
+</body>
+</html>

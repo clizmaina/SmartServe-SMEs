@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Get Started – SmartServe SMEs</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@300;400;500;600&display=swap');
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --green:#006600; --gold:#d4a843; --dark:#0d0d0d; }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      min-height: 100vh;
+      background:
+        linear-gradient(135deg, rgba(0,0,0,0.82) 0%, rgba(0,80,0,0.7) 100%),
+        url('https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=1600&q=80') center/cover no-repeat fixed;
+      display: flex; flex-direction: column; align-items: center;
+      padding: 30px 16px 60px;
+    }
+
+    .flag-stripe { width: 100%; height: 5px; background: linear-gradient(90deg, #006600 33%, #000 33%, #000 66%, #bb0000 66%); margin-bottom: 0; position: fixed; top: 0; left: 0; z-index: 200; }
+
+    /* TOP NAV */
+    .top-nav {
+      width: 100%; max-width: 900px;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 0 30px;
+    }
+    .nav-brand { font-family: 'Playfair Display', serif; font-size: 1.3rem; color: var(--gold); text-decoration: none; }
+    .nav-brand span { color: #fff; }
+    .nav-back { color: rgba(255,255,255,0.65); text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+    .nav-back:hover { color: #fff; }
+
+    /* HEADER */
+    .page-header { text-align: center; margin-bottom: 40px; max-width: 600px; }
+    .page-badge { display: inline-block; background: var(--gold); color: #000; font-size: 0.72rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; padding: 5px 16px; border-radius: 20px; margin-bottom: 16px; }
+    .page-header h1 { font-family: 'Playfair Display', serif; font-size: clamp(1.8rem, 4vw, 2.6rem); color: #fff; line-height: 1.2; margin-bottom: 12px; }
+    .page-header h1 span { color: var(--gold); }
+    .page-header p { font-size: 0.95rem; color: rgba(255,255,255,0.65); line-height: 1.7; }
+
+    /* MAIN CARD */
+    .card {
+      width: 100%; max-width: 700px;
+      background: rgba(255,255,255,0.97);
+      border-radius: 24px;
+      padding: 40px 36px;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+    }
+
+    .card-title { font-size: 1rem; font-weight: 600; color: #333; margin-bottom: 6px; }
+    .card-sub { font-size: 0.85rem; color: #888; margin-bottom: 24px; }
+
+    /* BUSINESS GRID */
+    .business-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .business-card {
+      border: 2px solid #e8e8e8;
+      border-radius: 14px;
+      padding: 18px 8px 14px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      background: #fafafa;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .business-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: var(--green); transform: scaleX(0); transition: transform 0.2s;
+    }
+
+    .business-card:hover { border-color: var(--green); background: #fff; transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,102,0,0.12); }
+    .business-card:hover::before { transform: scaleX(1); }
+
+    .business-card.selected {
+      border-color: var(--green); background: var(--green); color: #fff;
+      transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,102,0,0.3);
+    }
+    .business-card.selected::before { transform: scaleX(1); background: var(--gold); }
+
+    .business-card .icon { font-size: 2rem; line-height: 1; }
+    .business-card .label { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; text-align: center; color: #444; }
+    .business-card.selected .label { color: rgba(255,255,255,0.9); }
+
+    /* PREVIEW PANEL */
+    .preview-panel {
+      display: none;
+      border-radius: 14px;
+      padding: 20px 22px;
+      margin-bottom: 20px;
+      border-left: 4px solid var(--green);
+      background: rgba(0,102,0,0.05);
+      animation: fadeIn 0.3s ease;
+    }
+    .preview-panel.visible { display: flex; align-items: flex-start; gap: 14px; }
+    .preview-panel .p-icon { font-size: 2.2rem; flex-shrink: 0; }
+    .preview-panel h3 { font-size: 1rem; font-weight: 700; color: #111; margin-bottom: 5px; }
+    .preview-panel p { font-size: 0.85rem; color: #555; line-height: 1.6; }
+
+    /* DIVIDER */
+    .divider { display: flex; align-items: center; gap: 12px; margin: 20px 0; color: #bbb; font-size: 0.8rem; }
+    .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: #e8e8e8; }
+
+    /* CONTINUE BUTTON */
+    .btn-continue {
+      width: 100%; padding: 15px;
+      background: var(--green); color: #fff;
+      border: none; border-radius: 12px;
+      font-family: 'Poppins', sans-serif; font-size: 1rem; font-weight: 600;
+      cursor: pointer; transition: all 0.25s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-continue:hover:not(:disabled) { background: #008800; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,102,0,0.35); }
+    .btn-continue:disabled { background: #ccc; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    /* TRUST BADGES */
+    .trust-row {
+      display: flex; justify-content: center; gap: 24px; flex-wrap: wrap;
+      margin-top: 28px; padding-top: 24px; border-top: 1px solid #f0f0f0;
+    }
+    .trust-item { display: flex; align-items: center; gap: 6px; font-size: 0.78rem; color: #888; }
+    .trust-item span:first-child { font-size: 1rem; }
+
+    /* FOOTER NOTE */
+    .footer-note { margin-top: 24px; text-align: center; font-size: 0.8rem; color: rgba(255,255,255,0.45); }
+    .footer-note a { color: var(--gold); text-decoration: none; }
+    .footer-note a:hover { text-decoration: underline; }
+
+    @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+    /* LANG SWITCHER */
+    .lang-float { position:fixed; top:14px; right:20px; z-index:300; display:flex; align-items:center; gap:6px; background:rgba(0,0,0,0.55); border:1px solid rgba(255,255,255,0.2); border-radius:20px; padding:5px 12px; backdrop-filter:blur(6px); }
+    .lang-float span { font-size:0.8rem; color:rgba(255,255,255,0.6); }
+    .lang-select { background:transparent; border:none; color:#fff; font-family:'Poppins',sans-serif; font-size:0.82rem; font-weight:600; cursor:pointer; outline:none; }
+    .lang-select option { color:#111; background:#fff; }
+
+    @media (max-width: 560px) {
+      .business-grid { grid-template-columns: repeat(3, 1fr); }
+      .card { padding: 28px 20px; }
+    }
+    @media (max-width: 400px) {
+      .business-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="flag-stripe"></div>
+
+  <!-- Floating language switcher -->
+  <div class="lang-float">
+    <span>🌐</span>
+    <select class="lang-select" onchange="changeLanguage(this.value)">
+      <option value="en">English</option>
+      <option value="sw">Kiswahili</option>
+    </select>
+  </div>
+
+  <div class="top-nav">
+    <a href="index.html" class="nav-brand">Smart<span>Serve</span> SMEs</a>
+    <a href="index.html" class="nav-back" data-i18n="nav.back">← Back to Home</a>
+  </div>
+
+  <div class="page-header">
+    <div class="page-badge" data-i18n="select.badge">🇰🇪 Get Started</div>
+    <h1><span data-i18n="select.h1a">What Kind of</span> <span data-i18n="select.h1b">Business</span> <span data-i18n="select.h1c">Are You?</span></h1>
+    <p data-i18n="select.p">Choose your business category below. We'll set up the right dashboard for you — whether you're a provider or a customer.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-title" data-i18n="select.card.title">Select Your Business Type</div>
+    <div class="card-sub" data-i18n="select.card.sub">Tap the category that best describes your business or what you're looking for</div>
+
+    <div class="business-grid">
+      <div class="business-card" data-value="tailoring" onclick="selectBusiness(this)">
+        <span class="icon">✂️</span>
+        <span class="label" data-i18n="biz.label.tailoring">Tailoring</span>
+      </div>
+      <div class="business-card" data-value="salon" onclick="selectBusiness(this)">
+        <span class="icon">💇</span>
+        <span class="label" data-i18n="biz.label.salon">Salon</span>
+      </div>
+      <div class="business-card" data-value="restaurant" onclick="selectBusiness(this)">
+        <span class="icon">🍽️</span>
+        <span class="label" data-i18n="biz.label.restaurant">Restaurant</span>
+      </div>
+      <div class="business-card" data-value="boutique" onclick="selectBusiness(this)">
+        <span class="icon">👗</span>
+        <span class="label" data-i18n="biz.label.boutique">Boutique</span>
+      </div>
+      <div class="business-card" data-value="agrovet" onclick="selectBusiness(this)">
+        <span class="icon">🌿</span>
+        <span class="label" data-i18n="biz.label.agrovet">Agrovet</span>
+      </div>
+      <div class="business-card" data-value="hardware" onclick="selectBusiness(this)">
+        <span class="icon">🔧</span>
+        <span class="label" data-i18n="biz.label.hardware">Hardware</span>
+      </div>
+      <div class="business-card" data-value="cyber" onclick="selectBusiness(this)">
+        <span class="icon">💻</span>
+        <span class="label" data-i18n="biz.label.cyber">Cyber Café</span>
+      </div>
+    </div>
+
+    <!-- Preview panel -->
+    <div class="preview-panel" id="previewPanel">
+      <span class="p-icon" id="previewIcon"></span>
+      <div>
+        <h3 id="previewTitle"></h3>
+        <p id="previewDesc"></p>
+      </div>
+    </div>
+
+    <button class="btn-continue" id="continueBtn" onclick="goToAuth()" disabled>
+      <span>Continue</span> <span>→</span>
+    </button>
+
+    <div class="trust-row">
+      <div class="trust-item"><span>🔒</span><span data-i18n="select.trust1">Secure signup</span></div>
+      <div class="trust-item"><span>💚</span><span data-i18n="select.trust2">M-Pesa payments</span></div>
+      <div class="trust-item"><span>🇰🇪</span><span data-i18n="select.trust3">Made in Kenya</span></div>
+      <div class="trust-item"><span>⚡</span><span data-i18n="select.trust4">Ready in 2 minutes</span></div>
+    </div>
+  </div>
+
+  <div class="footer-note">
+    <span data-i18n="select.footer">Already have an account?</span> <a href="signin.html" data-i18n="select.signin">Sign in here</a> &nbsp;·&nbsp;
+    <a href="index.html" data-i18n="select.backhome">Back to Home</a>
+  </div>
+
+  <script src="lang.js"></script>
+  <script>
+    // Bilingual business info — reads from translations if available
+    const businessInfoEn = {
+      tailoring: { icon:'✂️', title:'Tailoring & Fashion Design', desc:'Manage customer measurements, garment orders, design uploads, previews and M-Pesa payments — all in one place.' },
+      salon:     { icon:'💇', title:'Salon & Barbershop',         desc:'Let customers book appointments online, manage your schedule and collect payments via M-Pesa.' },
+      restaurant:{ icon:'🍽️', title:'Restaurant & Eatery',        desc:'Take online orders, manage your menu, track daily sales and build a loyal customer base digitally.' },
+      boutique:  { icon:'👗', title:'Boutique & Fashion Shop',    desc:'List your products, manage stock, take orders and offer home delivery — all from your dashboard.' },
+      agrovet:   { icon:'🌿', title:'Agrovet & Farm Supplies',    desc:'Connect farmers with your products. Manage inventory and orders for seeds, feeds and chemicals.' },
+      hardware:  { icon:'🔧', title:'Hardware & Building Supplies',desc:'Manage your product catalogue, take customer orders and track deliveries for your hardware business.' },
+      cyber:     { icon:'💻', title:'Cyber Café',                 desc:'Manage computer sessions, printing services, billing and customer accounts from one dashboard.' }
+    };
+    const businessInfoSw = {
+      tailoring: { icon:'✂️', title:'Ushonaji na Ubunifu wa Mitindo', desc:'Simamia vipimo vya wateja, maagizo ya nguo, upakiaji wa miundo, mifano na malipo ya M-Pesa — mahali pamoja.' },
+      salon:     { icon:'💇', title:'Saluni na Kinyozi',               desc:'Waruhusu wateja kuweka miadi mtandaoni, simamia ratiba yako na kukusanya malipo kupitia M-Pesa.' },
+      restaurant:{ icon:'🍽️', title:'Mgahawa na Chakula',              desc:'Pokea maagizo mtandaoni, simamia menyu yako, fuatilia mauzo ya kila siku na jenga msingi wa wateja waaminifu.' },
+      boutique:  { icon:'👗', title:'Boutique na Duka la Mitindo',     desc:'Orodhesha bidhaa zako, simamia hisa, pokea maagizo na toa utoaji wa nyumbani — kutoka dashibodi yako.' },
+      agrovet:   { icon:'🌿', title:'Agrovet na Vifaa vya Kilimo',     desc:'Unganisha wakulima na bidhaa zako. Simamia hesabu na maagizo ya mbegu, chakula cha mifugo na kemikali.' },
+      hardware:  { icon:'🔧', title:'Vifaa vya Ujenzi',                desc:'Simamia katalogi ya bidhaa, pokea maagizo ya wateja na fuatilia utoaji kwa biashara yako ya vifaa.' },
+      cyber:     { icon:'💻', title:'Cyber Café',                      desc:'Simamia vikao vya kompyuta, huduma za uchapishaji, bili na akaunti za wateja kutoka dashibodi moja.' }
+    };
+
+    let selectedBusiness = '';
+
+    function getCurrentLang() {
+      return localStorage.getItem('ss_lang') || 'en';
+    }
+
+    function selectBusiness(card) {
+      document.querySelectorAll('.business-card').forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+      selectedBusiness = card.dataset.value;
+
+      const lang = getCurrentLang();
+      const info = lang === 'sw' ? businessInfoSw[selectedBusiness] : businessInfoEn[selectedBusiness];
+
+      document.getElementById('previewIcon').textContent  = info.icon;
+      document.getElementById('previewTitle').textContent = info.title;
+      document.getElementById('previewDesc').textContent  = info.desc;
+      document.getElementById('previewPanel').classList.add('visible');
+
+      const btn = document.getElementById('continueBtn');
+      btn.disabled = false;
+      const continueWord = lang === 'sw' ? 'Endelea na' : 'Continue with';
+      btn.innerHTML = `<span>${continueWord} ${info.title}</span> <span>→</span>`;
+    }
+
+    function goToAuth() {
+      if (!selectedBusiness) {
+        alert(getCurrentLang() === 'sw' ? 'Tafadhali chagua aina ya biashara' : 'Please select a business type');
+        return;
+      }
+      localStorage.setItem('businessType', selectedBusiness);
+      window.location.href = 'signin.html';
+    }
+  </script>
+
+</body>
+</html>

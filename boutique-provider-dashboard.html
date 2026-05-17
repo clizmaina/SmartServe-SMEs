@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Boutique - Provider Dashboard</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=Playfair+Display:wght@700&display=swap');
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Poppins', sans-serif; display: flex; min-height: 100vh; background: linear-gradient(rgba(0,0,0,0.55),rgba(0,0,0,0.55)), url('https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?w=1400') no-repeat center/cover fixed; color: #f0f0f0; }
+    .sidebar { width: 260px; background: rgba(40,10,60,0.95); backdrop-filter: blur(8px); height: 100vh; padding: 30px 20px; position: fixed; display: flex; flex-direction: column; box-shadow: 4px 0 20px rgba(0,0,0,0.4); overflow-y: auto; }
+    .sidebar h2 { font-family: 'Playfair Display', serif; font-size: 1.3rem; color: #f0d0ff; text-align: center; margin-bottom: 30px; }
+    .sidebar a { display: block; color: #fff; text-decoration: none; padding: 12px 16px; margin: 6px 0; border-radius: 8px; font-weight: 500; cursor: pointer; transition: all 0.3s; }
+    .sidebar a:hover, .sidebar a.active { background: rgba(255,255,255,0.2); transform: translateX(6px); }
+    .content { margin-left: 260px; flex: 1; padding: 40px; overflow-y: auto; }
+    .tab-content { display: none; animation: fadeIn 0.5s ease; }
+    .tab-content.active { display: block; }
+    .card { background: rgba(255,255,255,0.1); backdrop-filter: blur(6px); border-radius: 12px; padding: 24px; margin-bottom: 20px; }
+    h1 { font-family: 'Playfair Display', serif; font-size: 2rem; margin-bottom: 8px; color: #f0d0ff; }
+    h2 { font-family: 'Playfair Display', serif; color: #f0d0ff; margin-bottom: 16px; }
+    p { color: #ddd; line-height: 1.7; }
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 14px; margin: 20px 0; }
+    .stat-card { background: rgba(255,255,255,0.12); border-radius: 10px; padding: 20px; text-align: center; }
+    .stat-card .num { font-size: 1.8rem; font-weight: 700; color: #d4a0ff; }
+    .stat-card .lbl { font-size: 0.8rem; color: #ddd; margin-top: 4px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.1); font-size: 0.9rem; }
+    th { color: #d4a0ff; font-weight: 600; }
+    select, input, textarea { width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.15); color: #fff; font-family: 'Poppins', sans-serif; margin-bottom: 14px; }
+    select option { color: #111; }
+    button { background: linear-gradient(135deg, #7b2d8b, #a855c8); color: #fff; border: none; padding: 11px 26px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s; }
+    button:hover { transform: scale(1.05); opacity: 0.9; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .btn-green { background: linear-gradient(135deg, #1a6b4a, #2e9e6e); }
+    .btn-red { background: linear-gradient(135deg, #8b1a1a, #c83030); }
+    .badge { display:inline-block; padding:3px 10px; border-radius:20px; font-size:0.75rem; font-weight:600; }
+    .badge-pending { background:rgba(212,168,67,0.2); color:#f0c96a; border:1px solid rgba(212,168,67,0.4); }
+    .badge-processing { background:rgba(96,165,250,0.2); color:#60a5fa; border:1px solid rgba(96,165,250,0.4); }
+    .badge-delivered { background:rgba(74,222,128,0.2); color:#4ade80; border:1px solid rgba(74,222,128,0.4); }
+    .badge-cancelled { background:rgba(248,113,113,0.2); color:#f87171; border:1px solid rgba(248,113,113,0.4); }
+    .badge-pickup { background:rgba(74,222,128,0.15); color:#4ade80; border:1px solid rgba(74,222,128,0.3); }
+    .badge-delivery { background:rgba(96,165,250,0.15); color:#60a5fa; border:1px solid rgba(96,165,250,0.3); }
+    label { display:block; color:rgba(255,255,255,0.65); font-size:0.85rem; margin-bottom:6px; }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <h2>👗 Boutique Owner</h2>
+    <a onclick="showTab('overview')" class="active">📊 Overview</a>
+    <a onclick="showTab('orders-mgmt')">🛍️ Orders</a>
+    <a onclick="showTab('delivery-mgmt')">🚚 Delivery</a>
+    <a onclick="showTab('delivered-inventory')">📦 Delivered Inventory</a>
+    <a onclick="showTab('inventory')">🗃️ Product Inventory</a>
+    <a onclick="showTab('fittings')">📏 Fittings</a>
+    <a onclick="showTab('add-product')">➕ Add Product</a>
+    <a onclick="showTab('customers')">👥 Customers</a>
+    <a onclick="showTab('earnings')">💰 Earnings</a>
+    <a onclick="logout()">🚪 Logout</a>
+  </div>
+
+  <div class="content">
+
+    <!-- Overview -->
+    <div id="overview" class="tab-content active">
+      <h1>Boutique Overview</h1>
+      <p>Manage your inventory, orders, and customer fittings from here.</p>
+      <div class="stat-grid" id="overview-stats">
+        <div class="stat-card"><div class="num" id="stat-orders">—</div><div class="lbl">Total Orders</div></div>
+        <div class="stat-card"><div class="num" id="stat-pending">—</div><div class="lbl">Pending</div></div>
+        <div class="stat-card"><div class="num" id="stat-delivered">—</div><div class="lbl">Delivered</div></div>
+        <div class="stat-card"><div class="num" id="stat-products">—</div><div class="lbl">Products Listed</div></div>
+        <div class="stat-card"><div class="num" id="stat-fittings">—</div><div class="lbl">Fitting Bookings</div></div>
+        <div class="stat-card"><div class="num" id="stat-revenue">—</div><div class="lbl">Total Revenue</div></div>
+      </div>
+    </div>
+
+    <!-- Orders Management -->
+    <div id="orders-mgmt" class="tab-content">
+      <h2>Customer Orders</h2>
+      <div id="orders-list"><p>Loading orders...</p></div>
+    </div>
+
+    <!-- Delivery Management -->
+    <div id="delivery-mgmt" class="tab-content">
+      <h2>🚚 Delivery Management</h2>
+      <p style="margin-bottom:20px;">View pending/processing orders and mark them as delivered. Delivered orders are automatically saved to your inventory log.</p>
+      <div id="delivery-orders-list"><p>Loading...</p></div>
+    </div>
+
+    <!-- Delivered Inventory -->
+    <div id="delivered-inventory" class="tab-content">
+      <h2>📦 Delivered Inventory</h2>
+      <p style="margin-bottom:20px;">All orders that have been marked as delivered.</p>
+      <div id="delivered-inv-list"><p>Loading...</p></div>
+    </div>
+
+    <!-- Product Inventory -->
+    <div id="inventory" class="tab-content">
+      <h2>Product Inventory</h2>
+      <div id="inventory-list"><p>Loading products...</p></div>
+    </div>
+
+    <!-- Fittings -->
+    <div id="fittings" class="tab-content">
+      <h2>Fitting Appointments</h2>
+      <div id="fittings-list"><p>Loading fittings...</p></div>
+    </div>
+
+    <!-- Add Product -->
+    <div id="add-product" class="tab-content">
+      <h2>Add New Product</h2>
+      <div class="card">
+        <label>Product Name</label><input type="text" id="prod-name" placeholder="e.g. Floral Maxi Dress">
+        <label>Category</label>
+        <select id="prod-category"><option>Dresses</option><option>Shirts</option><option>Trousers</option><option>Jackets</option><option>Accessories</option></select>
+        <label>Price (KSh)</label><input type="number" id="prod-price" placeholder="e.g. 2500">
+        <label>Available Sizes</label><input type="text" id="prod-sizes" placeholder="e.g. S, M, L, XL">
+        <label>Stock Quantity</label><input type="number" id="prod-stock" placeholder="e.g. 20">
+        <label>Product Image</label><input type="file" id="prod-image" accept="image/*">
+        <button onclick="addProduct()">Add Product</button>
+        <p id="prod-msg" style="margin-top:8px;font-size:0.85rem;"></p>
+      </div>
+    </div>
+
+    <!-- Customers -->
+    <div id="customers" class="tab-content">
+      <h2>Customer Queue</h2>
+      <p style="margin-bottom:16px;color:#ddd;">Customers who have selected you as their provider.</p>
+      <div id="active-customer-banner" style="display:none;background:rgba(100,255,100,0.15);border:1px solid #80ff80;border-radius:10px;padding:14px 20px;margin-bottom:16px;color:#b3ffb3;"></div>
+      <div id="customer-queue-list"><p style="color:#ddd;">Loading your customer queue...</p></div>
+    </div>
+
+    <!-- Earnings -->
+    <div id="earnings" class="tab-content">
+      <h2>Earnings</h2>
+      <div class="stat-grid" id="earnings-stats">
+        <div class="stat-card"><div class="num" id="earn-total">—</div><div class="lbl">Total Earned</div></div>
+        <div class="stat-card"><div class="num" id="earn-count">—</div><div class="lbl">Delivered Orders</div></div>
+      </div>
+      <div id="earnings-list" style="margin-top:20px;"></div>
+    </div>
+
+  </div>
+
+  </div><!-- /content -->
+
+  <script>
+    const BASE = 'http://localhost:5501';
+
+    (function() {
+      if (!localStorage.getItem('user')) window.location.replace('business-select.html');
+      history.replaceState(null, '', window.location.href);
+    })();
+
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const providerId = user.id;
+
+    // Track active sidebar link
+    document.querySelectorAll('.sidebar a[onclick]').forEach(a => {
+      a.addEventListener('click', function() {
+        document.querySelectorAll('.sidebar a').forEach(l => l.classList.remove('active'));
+        this.classList.add('active');
+      });
+    });
+
+    function showTab(id) {
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      if (id === 'overview')            loadOverview();
+      if (id === 'orders-mgmt')         loadOrders();
+      if (id === 'delivery-mgmt')       loadDeliveryOrders();
+      if (id === 'delivered-inventory') loadDeliveredInventory();
+      if (id === 'inventory')           loadProducts();
+      if (id === 'fittings')            loadFittings();
+      if (id === 'customers')           loadCustomerQueue();
+      if (id === 'earnings')            loadEarnings();
+    }
+
+    function logout() {
+      localStorage.removeItem('user');
+      localStorage.removeItem('businessType');
+      window.location.replace('business-select.html');
+    }
+
+    // ── Overview ─────────────────────────────────────────────────────────────
+    async function loadOverview() {
+      try {
+        const [ordRes, prodRes, fitRes] = await Promise.all([
+          fetch(`${BASE}/boutique/orders/provider/${providerId}`, { credentials: 'include' }),
+          fetch(`${BASE}/boutique/products/${providerId}`, { credentials: 'include' }),
+          fetch(`${BASE}/boutique/fittings/provider/${providerId}`, { credentials: 'include' })
+        ]);
+        const [ordData, prodData, fitData] = await Promise.all([ordRes.json(), prodRes.json(), fitRes.json()]);
+        const orders   = ordData.orders   || [];
+        const products = prodData.products || [];
+        const fittings = fitData.fittings  || [];
+        const delivered = orders.filter(o => o.status === 'delivered');
+        const pending   = orders.filter(o => o.status === 'pending');
+        const revenue   = delivered.reduce((s, o) => s + Number(o.total_price || 0), 0);
+        document.getElementById('stat-orders').textContent    = orders.length;
+        document.getElementById('stat-pending').textContent   = pending.length;
+        document.getElementById('stat-delivered').textContent = delivered.length;
+        document.getElementById('stat-products').textContent  = products.length;
+        document.getElementById('stat-fittings').textContent  = fittings.length;
+        document.getElementById('stat-revenue').textContent   = 'KSh ' + revenue.toLocaleString();
+      } catch (e) { console.error('Overview error:', e); }
+    }
+
+    // ── Orders ────────────────────────────────────────────────────────────────
+    async function loadOrders() {
+      const el = document.getElementById('orders-list');
+      el.innerHTML = '<p>Loading...</p>';
+      try {
+        const res  = await fetch(`${BASE}/boutique/orders/provider/${providerId}`, { credentials: 'include' });
+        const data = await res.json();
+        const orders = data.orders || [];
+        if (!orders.length) { el.innerHTML = '<p style="color:#ddd;">No orders yet.</p>'; return; }
+        el.innerHTML = `<div class="card"><table>
+          <thead><tr><th>#</th><th>Customer</th><th>Item</th><th>Size</th><th>Qty</th><th>Total</th><th>Status</th><th>Date</th><th>Action</th></tr></thead>
+          <tbody>${orders.map(o => `<tr>
+            <td>${o.id}</td>
+            <td>${esc(o.customer_name || '—')}</td>
+            <td>${esc(o.item_name || '—')}</td>
+            <td>${esc(o.size || '—')}</td>
+            <td>${o.quantity}</td>
+            <td>KSh ${Number(o.total_price||0).toLocaleString()}</td>
+            <td><span class="badge badge-${o.status}">${o.status}</span></td>
+            <td>${new Date(o.created_at).toLocaleDateString()}</td>
+            <td>${o.status !== 'delivered' && o.status !== 'cancelled'
+              ? `<button class="btn-green" style="padding:6px 12px;font-size:0.78rem;" onclick="updateOrderStatus(${o.id},'${o.status === 'pending' ? 'processing' : 'delivered'}',this)">
+                   ${o.status === 'pending' ? '▶ Process' : '✅ Deliver'}
+                 </button>`
+              : '<span style="color:rgba(255,255,255,0.3);font-size:0.8rem;">—</span>'}</td>
+          </tr>`).join('')}</tbody>
+        </table></div>`;
+      } catch (e) { el.innerHTML = '<p style="color:#ffaaaa;">Failed to load orders.</p>'; }
+    }
+
+    async function updateOrderStatus(orderId, newStatus, btn) {
+      btn.disabled = true; btn.textContent = '...';
+      try {
+        const res  = await fetch(`${BASE}/boutique/orders/${orderId}/status`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+          body: JSON.stringify({ status: newStatus })
+        });
+        const data = await res.json();
+        if (data.success) loadOrders();
+        else { btn.disabled = false; btn.textContent = 'Retry'; }
+      } catch (e) { btn.disabled = false; btn.textContent = 'Error'; }
+    }
+
+    // ── Delivery Management ───────────────────────────────────────────────────
+    async function loadDeliveryOrders() {
+      const el = document.getElementById('delivery-orders-list');
+      el.innerHTML = '<p>Loading...</p>';
+      try {
+        const res  = await fetch(`${BASE}/boutique/orders/provider/${providerId}`, { credentials: 'include' });
+        const data = await res.json();
+        const orders = (data.orders || []).filter(o => o.status === 'pending' || o.status === 'processing');
+        if (!orders.length) {
+          el.innerHTML = '<div class="card"><p style="color:#b3ffb3;">✅ No pending deliveries — all orders are delivered or cancelled.</p></div>';
+          return;
+        }
+        el.innerHTML = `<div class="card"><table>
+          <thead><tr><th>#</th><th>Customer</th><th>Item</th><th>Size</th><th>Qty</th><th>Total</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody>${orders.map(o => `<tr>
+            <td>${o.id}</td>
+            <td>${esc(o.customer_name || '—')}</td>
+            <td>${esc(o.item_name || '—')}</td>
+            <td>${esc(o.size || '—')}</td>
+            <td>${o.quantity}</td>
+            <td>KSh ${Number(o.total_price||0).toLocaleString()}</td>
+            <td><span class="badge badge-${o.status}">${o.status}</span></td>
+            <td><button class="btn-green" style="padding:7px 14px;font-size:0.82rem;" id="del-btn-${o.id}" onclick="markDelivered(${o.id})">
+              🚚 Mark Delivered
+            </button></td>
+          </tr>`).join('')}</tbody>
+        </table></div>`;
+      } catch (e) { el.innerHTML = '<p style="color:#ffaaaa;">Failed to load delivery orders.</p>'; }
+    }
+
+    async function markDelivered(orderId) {
+      const btn = document.getElementById(`del-btn-${orderId}`);
+      if (btn) { btn.disabled = true; btn.textContent = '⏳ Saving...'; }
+      try {
+        const res  = await fetch(`${BASE}/boutique/orders/${orderId}/deliver`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' }, credentials: 'include'
+        });
+        const data = await res.json();
+        if (data.success) {
+          loadDeliveryOrders();
+          loadOverview();
+        } else {
+          if (btn) { btn.disabled = false; btn.textContent = '🚚 Mark Delivered'; }
+          alert(data.message || 'Failed to mark as delivered.');
+        }
+      } catch (e) {
+        if (btn) { btn.disabled = false; btn.textContent = '🚚 Mark Delivered'; }
+        alert('Server error. Please try again.');
+      }
+    }
+
+    // ── Delivered Inventory ───────────────────────────────────────────────────
+    async function loadDeliveredInventory() {
+      const el = document.getElementById('delivered-inv-list');
+      el.innerHTML = '<p>Loading...</p>';
+      try {
+        const res  = await fetch(`${BASE}/boutique/delivered-inventory/${providerId}`, { credentials: 'include' });
+        const data = await res.json();
+        const items = data.items || [];
+        if (!items.length) {
+          el.innerHTML = '<div class="card"><p style="color:#ddd;">No delivered orders yet.</p></div>';
+          return;
+        }
+        el.innerHTML = `<div class="card"><table>
+          <thead><tr><th>#</th><th>Customer</th><th>Item</th><th>Size</th><th>Qty</th><th>Total</th><th>Delivered At</th></tr></thead>
+          <tbody>${items.map((i, idx) => `<tr>
+            <td>${idx + 1}</td>
+            <td>${esc(i.customer_name || '—')}</td>
+            <td>${esc(i.item_name || '—')}</td>
+            <td>${esc(i.size || '—')}</td>
+            <td>${i.quantity}</td>
+            <td>KSh ${Number(i.total_price||0).toLocaleString()}</td>
+            <td>${new Date(i.delivered_at).toLocaleString()}</td>
+          </tr>`).join('')}</tbody>
+        </table></div>`;
+      } catch (e) { el.innerHTML = '<p style="color:#ffaaaa;">Failed to load delivered inventory.</p>'; }
+    }
+
+    // ── Product Inventory ─────────────────────────────────────────────────────
+    async function loadProducts() {
+      const el = document.getElementById('inventory-list');
+      el.innerHTML = '<p>Loading...</p>';
+      try {
+        const res  = await fetch(`${BASE}/boutique/products/${providerId}`, { credentials: 'include' });
+        const data = await res.json();
+        const products = data.products || [];
+        if (!products.length) { el.innerHTML = '<p style="color:#ddd;">No products listed yet.</p>'; return; }
+        el.innerHTML = products.map(p => `
+          <div class="card" style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;">
+            ${p.image_url ? `<img src="${BASE}${p.image_url}" style="width:70px;height:70px;object-fit:cover;border-radius:8px;border:1px solid rgba(255,255,255,0.2);">` : '<div style="width:70px;height:70px;background:rgba(255,255,255,0.1);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;">👗</div>'}
+            <div style="flex:1;">
+              <strong>${esc(p.name)}</strong>
+              <p style="font-size:0.82rem;color:#ddd;margin:2px 0;">${esc(p.category||'')} &nbsp;·&nbsp; KSh ${Number(p.price||0).toLocaleString()} &nbsp;·&nbsp; Sizes: ${esc(p.sizes||'—')}</p>
+              <p style="font-size:0.82rem;color:#ddd;">Stock: <strong style="color:${p.stock>0?'#b3ffb3':'#ffaaaa'};">${p.stock}</strong></p>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+              <input type="number" id="stock-${p.id}" value="${p.stock}" min="0" style="width:70px;padding:6px;margin:0;">
+              <button onclick="updateStock(${p.id})" style="padding:6px 12px;font-size:0.78rem;">Update Stock</button>
+              <button class="btn-red" onclick="deleteProduct(${p.id},this)" style="padding:6px 12px;font-size:0.78rem;">Delete</button>
+            </div>
+          </div>`).join('');
+      } catch (e) { el.innerHTML = '<p style="color:#ffaaaa;">Failed to load products.</p>'; }
+    }
+
+    async function updateStock(productId) {
+      const val = document.getElementById(`stock-${productId}`).value;
+      try {
+        const res  = await fetch(`${BASE}/boutique/products/${productId}/stock`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+          body: JSON.stringify({ stock: parseInt(val) })
+        });
+        const data = await res.json();
+        if (data.success) loadProducts();
+        else alert(data.message || 'Failed to update stock.');
+      } catch (e) { alert('Server error.'); }
+    }
+
+    async function deleteProduct(productId, btn) {
+      if (!confirm('Delete this product?')) return;
+      btn.disabled = true;
+      try {
+        const res  = await fetch(`${BASE}/boutique/products/${productId}`, { method: 'DELETE', credentials: 'include' });
+        const data = await res.json();
+        if (data.success) loadProducts();
+        else { btn.disabled = false; alert(data.message || 'Failed to delete.'); }
+      } catch (e) { btn.disabled = false; alert('Server error.'); }
+    }
+
+    async function addProduct() {
+      const msg   = document.getElementById('prod-msg');
+      const name  = document.getElementById('prod-name').value.trim();
+      const cat   = document.getElementById('prod-category').value;
+      const price = document.getElementById('prod-price').value;
+      const sizes = document.getElementById('prod-sizes').value.trim();
+      const stock = document.getElementById('prod-stock').value;
+      const file  = document.getElementById('prod-image').files[0];
+      if (!name) { msg.style.color='#ffaaaa'; msg.textContent='Product name is required.'; return; }
+      const fd = new FormData();
+      fd.append('providerId', providerId);
+      fd.append('name', name);
+      fd.append('category', cat);
+      fd.append('price', price || 0);
+      fd.append('sizes', sizes);
+      fd.append('stock', stock || 0);
+      if (file) fd.append('image', file);
+      msg.style.color = '#ffd700'; msg.textContent = 'Uploading...';
+      try {
+        const res  = await fetch(`${BASE}/boutique/products`, { method: 'POST', credentials: 'include', body: fd });
+        const data = await res.json();
+        msg.style.color = data.success ? '#b3ffb3' : '#ffaaaa';
+        msg.textContent = data.success ? '✅ Product added successfully.' : (data.message || 'Failed.');
+        if (data.success) {
+          document.getElementById('prod-name').value  = '';
+          document.getElementById('prod-price').value = '';
+          document.getElementById('prod-sizes').value = '';
+          document.getElementById('prod-stock').value = '';
+          document.getElementById('prod-image').value = '';
+        }
+      } catch (e) { msg.style.color='#ffaaaa'; msg.textContent='Server error.'; }
+    }
+
+    // ── Fittings ──────────────────────────────────────────────────────────────
+    async function loadFittings() {
+      const el = document.getElementById('fittings-list');
+      el.innerHTML = '<p>Loading...</p>';
+      try {
+        const res  = await fetch(`${BASE}/boutique/fittings/provider/${providerId}`, { credentials: 'include' });
+        const data = await res.json();
+        const fittings = data.fittings || [];
+        if (!fittings.length) { el.innerHTML = '<p style="color:#ddd;">No fitting bookings yet.</p>'; return; }
+        el.innerHTML = `<div class="card"><table>
+          <thead><tr><th>Customer</th><th>Date</th><th>Time</th><th>Items</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody>${fittings.map(f => `<tr>
+            <td>${esc(f.customer_name || '—')}</td>
+            <td>${f.fitting_date}</td>
+            <td>${f.fitting_time}</td>
+            <td style="font-size:0.82rem;">${esc(f.items || '—')}</td>
+            <td><span class="badge badge-${f.status === 'confirmed' ? 'delivered' : 'pending'}">${f.status}</span></td>
+            <td>${f.status !== 'confirmed'
+              ? `<button class="btn-green" style="padding:6px 12px;font-size:0.78rem;" onclick="confirmFitting(${f.id},this)">✅ Confirm</button>`
+              : '<span style="color:rgba(255,255,255,0.3);font-size:0.8rem;">Confirmed</span>'}</td>
+          </tr>`).join('')}</tbody>
+        </table></div>`;
+      } catch (e) { el.innerHTML = '<p style="color:#ffaaaa;">Failed to load fittings.</p>'; }
+    }
+
+    async function confirmFitting(fittingId, btn) {
+      btn.disabled = true; btn.textContent = '...';
+      try {
+        const res  = await fetch(`${BASE}/boutique/fittings/${fittingId}/confirm`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' }, credentials: 'include'
+        });
+        const data = await res.json();
+        if (data.success) loadFittings();
+        else { btn.disabled = false; btn.textContent = '✅ Confirm'; alert(data.message); }
+      } catch (e) { btn.disabled = false; btn.textContent = '✅ Confirm'; }
+    }
+
+    // ── Customer Queue ────────────────────────────────────────────────────────
+    async function loadCustomerQueue() {
+      const el = document.getElementById('customer-queue-list');
+      el.innerHTML = '<p style="color:#ddd;">Loading...</p>';
+      try {
+        const res  = await fetch(`${BASE}/provider-customers/${providerId}`, { credentials: 'include' });
+        const data = await res.json();
+        const customers = data.customers || [];
+        if (!customers.length) { el.innerHTML = '<p style="color:#ddd;">No customers have selected you yet.</p>'; return; }
+        el.innerHTML = customers.map(c => `
+          <div class="card" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+            <div>
+              <strong>${esc(c.name)}</strong>
+              <p style="font-size:0.82rem;color:#ddd;">${esc(c.email || '')}</p>
+            </div>
+            <span style="font-size:0.78rem;color:rgba(255,255,255,0.4);">Joined: ${new Date(c.created_at||Date.now()).toLocaleDateString()}</span>
+          </div>`).join('');
+      } catch (e) { el.innerHTML = '<p style="color:#ffaaaa;">Failed to load customers.</p>'; }
+    }
+
+    // ── Earnings ──────────────────────────────────────────────────────────────
+    async function loadEarnings() {
+      try {
+        const res  = await fetch(`${BASE}/boutique/delivered-inventory/${providerId}`, { credentials: 'include' });
+        const data = await res.json();
+        const items = data.items || [];
+        const total = items.reduce((s, i) => s + Number(i.total_price || 0), 0);
+        document.getElementById('earn-total').textContent = 'KSh ' + total.toLocaleString();
+        document.getElementById('earn-count').textContent = items.length;
+        const el = document.getElementById('earnings-list');
+        if (!items.length) { el.innerHTML = '<p style="color:#ddd;">No earnings yet.</p>'; return; }
+        el.innerHTML = `<div class="card"><table>
+          <thead><tr><th>Customer</th><th>Item</th><th>Amount</th><th>Delivered</th></tr></thead>
+          <tbody>${items.map(i => `<tr>
+            <td>${esc(i.customer_name || '—')}</td>
+            <td>${esc(i.item_name || '—')}</td>
+            <td>KSh ${Number(i.total_price||0).toLocaleString()}</td>
+            <td>${new Date(i.delivered_at).toLocaleDateString()}</td>
+          </tr>`).join('')}</tbody>
+        </table></div>`;
+      } catch (e) { console.error('Earnings error:', e); }
+    }
+
+    // ── Utility ───────────────────────────────────────────────────────────────
+    function esc(str) {
+      return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    // Auto-load overview on page start
+    loadOverview();
+  </script>
+  <script src="lang.js"></script>
+</body>
+</html>

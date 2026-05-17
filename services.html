@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Our Services – SmartServe SMEs</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Poppins:wght@300;400;500;600&display=swap');
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --green:#006600; --gold:#d4a843; --dark:#0d0d0d; --light:#f9f6f0; }
+    body { font-family: 'Poppins', sans-serif; color: #1a1a1a; background: #fff; }
+
+    .flag-stripe { height: 5px; background: linear-gradient(90deg, #006600 33%, #000 33%, #000 66%, #bb0000 66%); }
+
+    nav {
+      position: fixed; top: 5px; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 6%; background: rgba(0,0,0,0.88); backdrop-filter: blur(10px);
+    }
+    .nav-brand { font-family: 'Playfair Display', serif; font-size: 1.4rem; color: var(--gold); }
+    .nav-brand span { color: #fff; }
+    .nav-links { display: flex; gap: 10px; flex-wrap: wrap; }
+    .nav-links a { color: rgba(255,255,255,0.85); text-decoration: none; padding: 8px 16px; border-radius: 6px; font-size: 0.88rem; font-weight: 500; transition: all 0.2s; }
+    .nav-links a:hover { background: rgba(255,255,255,0.12); color: #fff; }
+    .nav-links .btn-cta { background: var(--green); color: #fff; border-radius: 8px; }
+    .nav-links .btn-cta:hover { background: #008800; }
+
+    /* LANG SWITCHER */
+    .lang-switcher { display:flex; align-items:center; gap:6px; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); border-radius:20px; padding:4px 10px; }
+    .lang-switcher span { font-size:0.8rem; color:rgba(255,255,255,0.6); }
+    .lang-select { background:transparent; border:none; color:#fff; font-family:'Poppins',sans-serif; font-size:0.82rem; font-weight:600; cursor:pointer; outline:none; padding:2px 4px; }
+    .lang-select option { color:#111; background:#fff; }
+
+    /* HERO */
+    .page-hero {
+      min-height: 60vh;
+      background: linear-gradient(135deg, rgba(0,0,0,0.78) 0%, rgba(0,80,0,0.6) 100%),
+        url('https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=1600&q=80') center/cover no-repeat;
+      display: flex; align-items: center; padding: 140px 6% 80px;
+    }
+    .page-hero-content { max-width: 700px; }
+    .page-badge { display: inline-block; background: var(--gold); color: #000; font-size: 0.75rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; padding: 6px 18px; border-radius: 20px; margin-bottom: 20px; }
+    .page-hero h1 { font-family: 'Playfair Display', serif; font-size: clamp(2rem, 4.5vw, 3.2rem); color: #fff; line-height: 1.2; margin-bottom: 18px; }
+    .page-hero h1 span { color: var(--gold); }
+    .page-hero p { font-size: 1.05rem; color: rgba(255,255,255,0.82); line-height: 1.8; }
+
+    /* SHARED */
+    section { padding: 80px 6%; }
+    .section-tag { display: inline-block; background: rgba(0,102,0,0.1); color: var(--green); font-size: 0.75rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; padding: 6px 16px; border-radius: 20px; margin-bottom: 14px; border: 1px solid rgba(0,102,0,0.25); }
+    .section-title { font-family: 'Playfair Display', serif; font-size: clamp(1.7rem, 3vw, 2.5rem); color: #1a1a1a; line-height: 1.25; margin-bottom: 16px; }
+    .section-title span { color: var(--green); }
+    .section-sub { font-size: 0.95rem; color: #555; line-height: 1.8; max-width: 620px; margin-bottom: 50px; }
+
+    /* SERVICES GRID */
+    .services-intro { background: var(--light); }
+    .services-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 28px;
+    }
+    .service-card {
+      background: #fff; border-radius: 20px; overflow: hidden;
+      box-shadow: 0 6px 28px rgba(0,0,0,0.09);
+      transition: transform 0.25s, box-shadow 0.25s;
+    }
+    .service-card:hover { transform: translateY(-6px); box-shadow: 0 14px 40px rgba(0,0,0,0.14); }
+    .service-card img { width: 100%; height: 200px; object-fit: cover; display: block; }
+    .service-card-body { padding: 24px 22px; }
+    .service-card-body .s-icon { font-size: 2rem; margin-bottom: 12px; display: block; }
+    .service-card-body h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 10px; color: #111; }
+    .service-card-body p { font-size: 0.87rem; color: #666; line-height: 1.75; margin-bottom: 16px; }
+    .service-card-body ul { padding-left: 18px; }
+    .service-card-body ul li { font-size: 0.84rem; color: #555; line-height: 1.8; }
+    .service-tag { display: inline-block; background: rgba(0,102,0,0.1); color: var(--green); font-size: 0.72rem; font-weight: 700; padding: 3px 12px; border-radius: 20px; margin-bottom: 12px; }
+
+    /* FEATURES STRIP */
+    .features-strip { background: var(--dark); padding: 70px 6%; }
+    .features-strip .section-title { color: #fff; }
+    .features-strip .section-tag { background: rgba(212,168,67,0.15); color: var(--gold); border-color: rgba(212,168,67,0.3); }
+    .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 24px; margin-top: 40px; }
+    .feature-item { text-align: center; padding: 28px 20px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; }
+    .feature-item .f-icon { font-size: 2.4rem; display: block; margin-bottom: 14px; }
+    .feature-item h4 { color: #fff; font-size: 0.95rem; font-weight: 600; margin-bottom: 8px; }
+    .feature-item p { color: rgba(255,255,255,0.5); font-size: 0.82rem; line-height: 1.6; }
+
+    /* PRICING */
+    .pricing { background: #fff; }
+    .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 24px; margin-top: 40px; }
+    .price-card { border-radius: 20px; padding: 36px 28px; border: 2px solid #e8e8e8; text-align: center; transition: all 0.25s; }
+    .price-card:hover { border-color: var(--green); transform: translateY(-4px); }
+    .price-card.featured { background: var(--green); border-color: var(--green); color: #fff; }
+    .price-card .p-icon { font-size: 2.5rem; display: block; margin-bottom: 16px; }
+    .price-card h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 8px; }
+    .price-card .price { font-family: 'Playfair Display', serif; font-size: 2.4rem; font-weight: 700; color: var(--green); margin: 12px 0 4px; }
+    .price-card.featured .price { color: var(--gold); }
+    .price-card .period { font-size: 0.82rem; color: #888; margin-bottom: 20px; }
+    .price-card.featured .period { color: rgba(255,255,255,0.65); }
+    .price-card ul { list-style: none; text-align: left; margin-bottom: 28px; }
+    .price-card ul li { font-size: 0.87rem; color: #555; padding: 6px 0; border-bottom: 1px solid #f0f0f0; }
+    .price-card ul li::before { content: '✓ '; color: var(--green); font-weight: 700; }
+    .price-card.featured ul li { color: rgba(255,255,255,0.85); border-color: rgba(255,255,255,0.15); }
+    .price-card.featured ul li::before { color: var(--gold); }
+    .btn-green { display: inline-block; background: var(--green); color: #fff; padding: 12px 28px; border-radius: 10px; font-weight: 600; font-size: 0.9rem; text-decoration: none; transition: all 0.25s; }
+    .btn-green:hover { background: #008800; transform: translateY(-2px); }
+    .btn-white { display: inline-block; background: #fff; color: var(--green); padding: 12px 28px; border-radius: 10px; font-weight: 600; font-size: 0.9rem; text-decoration: none; transition: all 0.25s; }
+    .btn-white:hover { background: #f0f0f0; }
+
+    /* CTA */
+    .cta-banner { background: linear-gradient(135deg, var(--green) 0%, #004400 100%); padding: 80px 6%; text-align: center; }
+    .cta-banner h2 { font-family: 'Playfair Display', serif; font-size: clamp(1.8rem, 3.5vw, 2.6rem); color: #fff; margin-bottom: 16px; }
+    .cta-banner p { color: rgba(255,255,255,0.8); font-size: 1rem; margin-bottom: 32px; }
+    .btn-gold { display: inline-block; background: var(--gold); color: #000; padding: 14px 36px; border-radius: 10px; font-weight: 700; font-size: 0.95rem; text-decoration: none; transition: all 0.25s; }
+    .btn-gold:hover { background: #f0c96a; transform: translateY(-2px); }
+
+    footer { background: #0a0a0a; padding: 40px 6%; text-align: center; }
+    footer p { color: rgba(255,255,255,0.35); font-size: 0.82rem; }
+    footer a { color: var(--gold); text-decoration: none; margin: 0 10px; }
+
+    @media (max-width: 640px) {
+      .nav-links a { padding: 6px 10px; font-size: 0.8rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="flag-stripe"></div>
+
+  <nav>
+    <div class="nav-brand">Smart<span>Serve</span> SMEs</div>
+    <div class="nav-links">
+      <a href="index.html" data-i18n="nav.home">Home</a>
+      <a href="about.html" data-i18n="nav.about">About</a>
+      <a href="services.html" data-i18n="nav.services">Services</a>
+      <a href="contact.html" data-i18n="nav.contact">Contact</a>
+      <div class="lang-switcher">
+        <span>🌐</span>
+        <select class="lang-select" onchange="changeLanguage(this.value)">
+          <option value="en">English</option>
+          <option value="sw">Kiswahili</option>
+        </select>
+      </div>
+      <a href="business-select.html" class="btn-cta" data-i18n="nav.getstarted">Get Started →</a>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <div class="page-hero">
+    <div class="page-hero-content">
+      <div class="page-badge" data-i18n="hero.badge">🇰🇪 What We Offer</div>
+      <h1>Digital Tools for Every <span>Kenyan Hustle</span></h1>
+      <p data-i18n="hero.p">From a tailor in Gikomba to a salon in Kisumu — SmartServe SMEs gives every small business owner a professional digital presence to connect with more customers and grow.</p>
+    </div>
+  </div>
+
+  <!-- SERVICES GRID -->
+  <section class="services-intro">
+    <div class="section-tag" data-i18n="svc.tag">Our Services</div>
+    <h2 class="section-title"><span data-i18n="svc.title1">Everything Your Business</span> <span data-i18n="svc.title2">Needs</span></h2>
+    <p class="section-sub" data-i18n="svc.sub">One platform, seven business types, hundreds of features — all designed for the Kenyan market.</p>
+
+    <div class="services-grid">
+
+      <div class="service-card">
+        <img src="https://images.unsplash.com/photo-1594938298603-c8148c4b4e5b?w=600&q=80" alt="Kenyan tailor sewing garment">
+        <div class="service-card-body">
+          <span class="service-tag">✂️ Tailoring</span>
+          <h3 data-i18n="biz.tailor.h">Tailors & Fashion Designers</h3>
+          <p data-i18n="svc.tailor.p">A complete digital studio for bespoke tailors. Manage every order from measurement to delivery.</p>
+          <ul>
+            <li data-i18n="svc.tailor.li1">Digital measurement submission</li>
+            <li data-i18n="svc.tailor.li2">Design photo uploads from customers</li>
+            <li data-i18n="svc.tailor.li3">Garment preview sharing</li>
+            <li data-i18n="svc.tailor.li4">Customer chat & order tracking</li>
+            <li data-i18n="svc.tailor.li5">AI fashion assistant for customers</li>
+            <li data-i18n="svc.tailor.li6">Delivery preference management</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="service-card">
+        <img src="https://images.unsplash.com/photo-1560066984-138dadb4c035?w=600&q=80" alt="African hair salon styling">
+        <div class="service-card-body">
+          <span class="service-tag">💇 Salon</span>
+          <h3 data-i18n="biz.salon.h">Salons & Barbershops</h3>
+          <p data-i18n="svc.salon.p">Let customers book appointments online and manage your schedule from your phone.</p>
+          <ul>
+            <li data-i18n="svc.salon.li1">Online appointment booking</li>
+            <li data-i18n="svc.salon.li2">Service menu management</li>
+            <li data-i18n="svc.salon.li3">Customer queue tracking</li>
+            <li data-i18n="svc.salon.li4">M-Pesa payment collection</li>
+            <li data-i18n="svc.salon.li5">Client history & preferences</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="service-card">
+        <img src="https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=600&q=80" alt="Kenyan restaurant food">
+        <div class="service-card-body">
+          <span class="service-tag">🍽️ Restaurant</span>
+          <h3 data-i18n="biz.resto.h">Restaurants & Eateries</h3>
+          <p data-i18n="svc.resto.p">Take orders online, manage your menu and build a loyal customer base digitally.</p>
+          <ul>
+            <li data-i18n="svc.resto.li1">Online menu & ordering</li>
+            <li data-i18n="svc.resto.li2">Table & delivery management</li>
+            <li data-i18n="svc.resto.li3">Daily sales tracking</li>
+            <li data-i18n="svc.resto.li4">Customer reviews & ratings</li>
+            <li data-i18n="svc.resto.li5">M-Pesa payment integration</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="service-card">
+        <img src="https://images.unsplash.com/photo-1483985988355-763728e1935b?w=600&q=80" alt="African fashion boutique">
+        <div class="service-card-body">
+          <span class="service-tag">🛍️ Boutique</span>
+          <h3 data-i18n="biz.boutique.h">Boutiques & Fashion Shops</h3>
+          <p data-i18n="svc.boutique.p">List your products, manage stock and offer home delivery — all from one dashboard.</p>
+          <ul>
+            <li data-i18n="svc.boutique.li1">Product catalogue with photos</li>
+            <li data-i18n="svc.boutique.li2">Stock & inventory management</li>
+            <li data-i18n="svc.boutique.li3">Order & delivery tracking</li>
+            <li data-i18n="svc.boutique.li4">Customer wishlist feature</li>
+            <li data-i18n="svc.boutique.li5">Fitting appointment booking</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="service-card">
+        <img src="https://images.unsplash.com/photo-1464226184884-fa280b87c399?w=600&q=80" alt="Kenyan agrovet farm supplies">
+        <div class="service-card-body">
+          <span class="service-tag">🌿 Agrovet</span>
+          <h3 data-i18n="biz.agro.h">Agrovets & Farm Supplies</h3>
+          <p data-i18n="svc.agro.p">Connect farmers with your products and manage agricultural supply orders digitally.</p>
+          <ul>
+            <li data-i18n="svc.agro.li1">Product & stock management</li>
+            <li data-i18n="svc.agro.li2">Farmer order management</li>
+            <li data-i18n="svc.agro.li3">Seasonal inventory tracking</li>
+            <li data-i18n="svc.agro.li4">Customer delivery coordination</li>
+            <li data-i18n="svc.agro.li5">M-Pesa payment collection</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="service-card">
+        <img src="https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=600&q=80" alt="Hardware shop building supplies">
+        <div class="service-card-body">
+          <span class="service-tag">🔧 Hardware</span>
+          <h3 data-i18n="biz.hw.h">Hardware & Building Supplies</h3>
+          <p data-i18n="svc.hw.p">Manage your product catalogue and take customer orders for building materials and tools.</p>
+          <ul>
+            <li data-i18n="svc.hw.li1">Product catalogue management</li>
+            <li data-i18n="svc.hw.li2">Customer order processing</li>
+            <li data-i18n="svc.hw.li3">Delivery tracking</li>
+            <li data-i18n="svc.hw.li4">Stock level monitoring</li>
+            <li data-i18n="svc.hw.li5">M-Pesa payment integration</li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- PLATFORM FEATURES -->
+  <section class="features-strip">
+    <div class="section-tag" data-i18n="feat.tag">Platform Features</div>
+    <h2 class="section-title" style="color:#fff;"><span data-i18n="feat.title1">Built for</span> <span style="color:var(--gold);" data-i18n="feat.title2">Kenya</span></h2>
+    <div class="features-grid">
+      <div class="feature-item">
+        <span class="f-icon">📱</span>
+        <h4 data-i18n="feat.f1h">Mobile First</h4>
+        <p data-i18n="feat.f1p">Works perfectly on any smartphone — no app download needed.</p>
+      </div>
+      <div class="feature-item">
+        <span class="f-icon">💚</span>
+        <h4 data-i18n="feat.f2h">M-Pesa Ready</h4>
+        <p data-i18n="feat.f2p">Accept payments via M-Pesa STK push directly from your dashboard.</p>
+      </div>
+      <div class="feature-item">
+        <span class="f-icon">🤖</span>
+        <h4 data-i18n="feat.f3h">AI Assistant</h4>
+        <p data-i18n="feat.f3p">Customers get instant fashion and product advice powered by ChatGPT.</p>
+      </div>
+      <div class="feature-item">
+        <span class="f-icon">💬</span>
+        <h4 data-i18n="feat.f4h">Live Chat</h4>
+        <p data-i18n="feat.f4p">Communicate directly with customers inside the platform — no WhatsApp needed.</p>
+      </div>
+      <div class="feature-item">
+        <span class="f-icon">📦</span>
+        <h4 data-i18n="feat.f5h">Delivery Tracking</h4>
+        <p data-i18n="feat.f5p">Manage home delivery and pick-up preferences for every order.</p>
+      </div>
+      <div class="feature-item">
+        <span class="f-icon">📊</span>
+        <h4 data-i18n="feat.f6h">Business Dashboard</h4>
+        <p data-i18n="feat.f6p">See your orders, earnings, customers and inventory in one clean view.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRICING -->
+  <section class="pricing">
+    <div class="section-tag" data-i18n="price.tag">Simple Pricing</div>
+    <h2 class="section-title"><span data-i18n="price.title1">Affordable for</span> <span data-i18n="price.title2">Every Business</span></h2>
+    <p class="section-sub" data-i18n="price.sub">No hidden fees. No complicated plans. Just one simple monthly subscription for providers.</p>
+    <div class="pricing-grid">
+
+      <div class="price-card">
+        <span class="p-icon">👤</span>
+        <h3 data-i18n="price.c1h">Customer</h3>
+        <div class="price">FREE</div>
+        <div class="period" data-i18n="price.c1period">Always free</div>
+        <ul>
+          <li data-i18n="price.c1li1">Browse all businesses</li>
+          <li data-i18n="price.c1li2">Place orders & book services</li>
+          <li data-i18n="price.c1li3">Chat with providers</li>
+          <li data-i18n="price.c1li4">Track your orders</li>
+          <li data-i18n="price.c1li5">AI fashion assistant</li>
+        </ul>
+        <a href="business-select.html" class="btn-green" data-i18n="price.c1btn">Sign Up Free</a>
+      </div>
+
+      <div class="price-card featured">
+        <span class="p-icon">🏪</span>
+        <h3 data-i18n="price.c2h">Business Provider</h3>
+        <div class="price">KSh 300</div>
+        <div class="period" data-i18n="price.c2period">per month</div>
+        <ul>
+          <li data-i18n="price.c2li1">Full provider dashboard</li>
+          <li data-i18n="price.c2li2">Unlimited customers</li>
+          <li data-i18n="price.c2li3">Order & delivery management</li>
+          <li data-i18n="price.c2li4">M-Pesa payment collection</li>
+          <li data-i18n="price.c2li5">Inventory management</li>
+          <li data-i18n="price.c2li6">Customer chat & notifications</li>
+        </ul>
+        <a href="business-select.html" class="btn-white" data-i18n="price.c2btn">Start Your Business</a>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <div class="cta-banner">
+    <h2 data-i18n="svc.cta.h">Ready to Take Your Business Online?</h2>
+    <p data-i18n="svc.cta.p">Join Kenyan entrepreneurs already using SmartServe SMEs to reach more customers every day.</p>
+    <a href="business-select.html" class="btn-gold" data-i18n="svc.cta.btn">Get Started — It's Free →</a>
+  </div>
+
+  <footer>
+    <p>
+      <a href="index.html" data-i18n="nav.home">Home</a>
+      <a href="about.html" data-i18n="nav.about">About</a>
+      <a href="contact.html" data-i18n="nav.contact">Contact</a>
+    </p>
+    <p style="margin-top:14px;" data-i18n="footer.copy">© 2025 SmartServe SMEs — Made with ❤️ in Kenya 🇰🇪</p>
+  </footer>
+
+  <div class="flag-stripe"></div>
+
+  <script src="lang.js"></script>
+</body>
+</html>

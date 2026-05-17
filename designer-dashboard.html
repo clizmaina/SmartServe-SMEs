@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Designer Dashboard – SmartServe SMEs</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@300;400;500;600&display=swap');
+
+    :root {
+      --gold:        #d4a843;
+      --gold-light:  #f0c96a;
+      --deep-plum:   #2d0a3e;
+      --plum:        #4a1060;
+      --plum-mid:    #6b2080;
+      --silk-rose:   #e8a0b0;
+      --silk-cream:  #fdf6ec;
+      --emerald:     #1a6b4a;
+      --emerald-mid: #2e9e6e;
+      --charcoal:    #1c1c2e;
+      --glass-bg:    rgba(255,255,255,0.07);
+      --glass-border:rgba(255,255,255,0.15);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, var(--charcoal) 0%, var(--deep-plum) 50%, #0d1b2a 100%);
+      min-height: 100vh;
+      color: #e8e0f0;
+      display: flex;
+    }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      width: 270px;
+      min-height: 100vh;
+      background: linear-gradient(180deg, var(--deep-plum) 0%, var(--plum) 60%, var(--plum-mid) 100%);
+      position: fixed;
+      top: 0; left: 0;
+      display: flex;
+      flex-direction: column;
+      padding: 0 0 30px;
+      box-shadow: 4px 0 30px rgba(0,0,0,0.6);
+      z-index: 100;
+      animation: slideInLeft 0.7s ease-out;
+    }
+
+    .sidebar-header {
+      padding: 30px 20px 20px;
+      border-bottom: 1px solid rgba(212,168,67,0.3);
+      text-align: center;
+    }
+
+    .sidebar-header .brand {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.5rem;
+      color: var(--gold);
+      letter-spacing: 1px;
+      text-shadow: 0 2px 8px rgba(212,168,67,0.4);
+    }
+
+    .sidebar-header .role-badge {
+      display: inline-block;
+      margin-top: 8px;
+      padding: 4px 14px;
+      background: linear-gradient(135deg, var(--gold), var(--gold-light));
+      color: var(--deep-plum);
+      border-radius: 20px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+    }
+
+    .sidebar-avatar {
+      width: 70px; height: 70px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--gold), var(--silk-rose));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2rem;
+      margin: 20px auto 10px;
+      box-shadow: 0 4px 15px rgba(212,168,67,0.4);
+    }
+
+    .sidebar nav {
+      flex: 1;
+      padding: 20px 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .sidebar a {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: rgba(255,255,255,0.85);
+      text-decoration: none;
+      padding: 12px 16px;
+      border-radius: 12px;
+      font-size: 0.92rem;
+      font-weight: 500;
+      transition: all 0.25s ease;
+      cursor: pointer;
+      border: 1px solid transparent;
+    }
+
+    .sidebar a .nav-icon {
+      font-size: 1.1rem;
+      width: 22px;
+      text-align: center;
+    }
+
+    .sidebar a:hover, .sidebar a.active {
+      background: linear-gradient(135deg, rgba(212,168,67,0.2), rgba(212,168,67,0.05));
+      border-color: rgba(212,168,67,0.4);
+      color: var(--gold-light);
+      transform: translateX(5px);
+    }
+
+    .sidebar a.logout-btn {
+      margin-top: auto;
+      color: #ff8a9a;
+      border-color: rgba(255,138,154,0.2);
+    }
+
+    .sidebar a.logout-btn:hover {
+      background: rgba(255,80,100,0.15);
+      border-color: rgba(255,80,100,0.4);
+      color: #ff6b7a;
+    }
+
+    .sidebar-footer {
+      padding: 15px 20px 0;
+      text-align: center;
+      font-size: 0.72rem;
+      color: rgba(255,255,255,0.35);
+      border-top: 1px solid rgba(255,255,255,0.08);
+    }
+
+    /* ── MAIN CONTENT ── */
+    .content {
+      margin-left: 270px;
+      flex: 1;
+      padding: 40px;
+      min-height: 100vh;
+      animation: fadeInUp 0.6s ease-out;
+    }
+
+    .page-header {
+      margin-bottom: 35px;
+    }
+
+    .page-header h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 2rem;
+      color: var(--gold);
+      text-shadow: 0 2px 10px rgba(212,168,67,0.3);
+    }
+
+    .page-header p {
+      color: rgba(255,255,255,0.5);
+      font-size: 0.88rem;
+      margin-top: 4px;
+    }
+
+    /* ── CARDS ── */
+    .card {
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 18px;
+      padding: 30px;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    }
+
+    .card h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.4rem;
+      color: var(--gold);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* ── TABS ── */
+    .tab-content { display: none; }
+    .tab-content.active {
+      display: block;
+      animation: fadeIn 0.5s ease-out;
+    }
+
+    /* ── FORM ELEMENTS ── */
+    select, input[type="text"], input[type="number"], input[type="file"], textarea {
+      width: 100%;
+      padding: 12px 16px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(212,168,67,0.3);
+      border-radius: 10px;
+      color: #fff;
+      font-family: 'Poppins', sans-serif;
+      font-size: 0.92rem;
+      margin-bottom: 16px;
+      transition: all 0.3s ease;
+      outline: none;
+    }
+
+    select option { background: var(--deep-plum); color: #fff; }
+
+    select:focus, input:focus, textarea:focus {
+      border-color: var(--gold);
+      box-shadow: 0 0 0 3px rgba(212,168,67,0.15);
+      background: rgba(255,255,255,0.12);
+    }
+
+    /* ── BUTTONS ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 26px;
+      border: none;
+      border-radius: 10px;
+      font-family: 'Poppins', sans-serif;
+      font-size: 0.92rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .btn-gold {
+      background: linear-gradient(135deg, var(--gold), var(--gold-light));
+      color: var(--deep-plum);
+      box-shadow: 0 4px 15px rgba(212,168,67,0.35);
+    }
+
+    .btn-gold:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(212,168,67,0.5);
+    }
+
+    .btn-emerald {
+      background: linear-gradient(135deg, var(--emerald), var(--emerald-mid));
+      color: #fff;
+      box-shadow: 0 4px 15px rgba(26,107,74,0.4);
+    }
+
+    .btn-emerald:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(46,158,110,0.5);
+    }
+
+    /* ── LISTS ── */
+    ul { list-style: none; padding: 0; }
+
+    li {
+      padding: 14px 18px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 10px;
+      margin-bottom: 10px;
+      transition: all 0.25s ease;
+    }
+
+    li:hover {
+      background: rgba(212,168,67,0.08);
+      border-color: rgba(212,168,67,0.25);
+      transform: translateX(4px);
+    }
+
+    li img {
+      width: 100%;
+      max-width: 280px;
+      border-radius: 10px;
+      margin-top: 10px;
+      border: 2px solid rgba(212,168,67,0.3);
+    }
+
+    /* ── CHAT ── */
+    #chat-display {
+      height: 240px;
+      overflow-y: auto;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid rgba(212,168,67,0.2);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 14px;
+      scroll-behavior: smooth;
+    }
+
+    #chat-display p {
+      margin-bottom: 10px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      line-height: 1.5;
+    }
+
+    #chat-display p strong { color: var(--gold-light); }
+
+    /* ── MEASUREMENT SETS ── */
+    .measurement-set {
+      background: rgba(212,168,67,0.06);
+      border: 1px solid rgba(212,168,67,0.2);
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-bottom: 14px;
+    }
+
+    .measurement-set h3 {
+      color: var(--gold-light);
+      font-size: 1rem;
+      margin-bottom: 10px;
+    }
+
+    .measurement-set ul { margin-left: 16px; list-style: disc; }
+    .measurement-set li {
+      background: none;
+      border: none;
+      padding: 3px 0;
+      font-size: 0.88rem;
+      color: rgba(255,255,255,0.8);
+    }
+    .measurement-set li:hover { transform: none; background: none; }
+
+    /* ── PAYMENT ITEMS ── */
+    .payment-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 18px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 10px;
+      margin-bottom: 10px;
+    }
+
+    .payment-status {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.78rem;
+      font-weight: 600;
+    }
+
+    .status-completed { background: rgba(46,158,110,0.2); color: #4ade80; border: 1px solid rgba(74,222,128,0.3); }
+    .status-pending   { background: rgba(212,168,67,0.2);  color: var(--gold-light); border: 1px solid rgba(212,168,67,0.3); }
+
+    /* ── DIVIDER ── */
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(212,168,67,0.3), transparent);
+      margin: 25px 0;
+    }
+
+    /* ── ANIMATIONS ── */
+    @keyframes fadeIn    { from { opacity:0 } to { opacity:1 } }
+    @keyframes fadeInUp  { from { opacity:0; transform:translateY(20px) } to { opacity:1; transform:translateY(0) } }
+    @keyframes slideInLeft { from { opacity:0; transform:translateX(-60px) } to { opacity:1; transform:translateX(0) } }
+
+    /* ── INVENTORY ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 16px;
+      margin-bottom: 30px;
+    }
+
+    .stat-card {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 14px;
+      padding: 18px 16px;
+      text-align: center;
+      transition: all 0.25s ease;
+    }
+
+    .stat-card:hover {
+      background: rgba(212,168,67,0.1);
+      border-color: rgba(212,168,67,0.35);
+      transform: translateY(-3px);
+    }
+
+    .stat-card .stat-icon  { font-size: 1.8rem; display: block; margin-bottom: 8px; }
+    .stat-card .stat-value { font-size: 1.8rem; font-weight: 700; color: var(--gold); line-height: 1; }
+    .stat-card .stat-label { font-size: 0.72rem; color: rgba(255,255,255,0.5); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.8px; }
+
+    .inv-section { margin-bottom: 36px; }
+
+    .inv-section-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.1rem;
+      color: var(--gold-light);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(212,168,67,0.2);
+    }
+
+    .inv-table-wrap {
+      overflow-x: auto;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+
+    thead tr {
+      background: rgba(212,168,67,0.12);
+    }
+
+    thead th {
+      padding: 12px 16px;
+      text-align: left;
+      color: var(--gold-light);
+      font-weight: 600;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      white-space: nowrap;
+    }
+
+    tbody tr {
+      border-top: 1px solid rgba(255,255,255,0.05);
+      transition: background 0.2s ease;
+    }
+
+    tbody tr:hover { background: rgba(212,168,67,0.06); }
+
+    tbody td {
+      padding: 11px 16px;
+      color: rgba(255,255,255,0.82);
+      vertical-align: middle;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 0.72rem;
+      font-weight: 600;
+    }
+
+    .badge-pickup   { background: rgba(74,222,128,0.15); color: #4ade80; border: 1px solid rgba(74,222,128,0.3); }
+    .badge-delivery { background: rgba(96,165,250,0.15); color: #60a5fa; border: 1px solid rgba(96,165,250,0.3); }
+    .badge-garment  { background: rgba(212,168,67,0.15); color: var(--gold-light); border: 1px solid rgba(212,168,67,0.3); }
+
+    .inv-search {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .inv-search input {
+      flex: 1;
+      min-width: 200px;
+      margin-bottom: 0;
+      padding: 10px 16px;
+    }
+
+    .inv-search select {
+      width: auto;
+      min-width: 160px;
+      margin-bottom: 0;
+      padding: 10px 16px;
+    }
+
+    .inv-thumb {
+      width: 48px;
+      height: 48px;
+      object-fit: cover;
+      border-radius: 8px;
+      border: 1px solid rgba(212,168,67,0.3);
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    .inv-thumb:hover { transform: scale(1.1); }
+
+    .inv-empty {
+      text-align: center;
+      padding: 30px;
+      color: rgba(255,255,255,0.35);
+      font-size: 0.88rem;
+    }
+
+    .inv-refresh-btn {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 18px;
+      font-size: 0.82rem;
+    }
+
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: rgba(255,255,255,0.03); }
+    ::-webkit-scrollbar-thumb { background: rgba(212,168,67,0.4); border-radius: 3px; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      .sidebar { width: 220px; }
+      .content { margin-left: 220px; padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── SIDEBAR ── -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-avatar">✂️</div>
+      <div class="brand">SmartServe SMEs</div>
+      <span class="role-badge">Designer</span>
+    </div>
+
+    <nav>
+      <a onclick="showTab('customer-selection')" class="active">
+        <span class="nav-icon">👤</span> <span data-i18n="d.nav.selectcustomer">Select Customer</span>
+      </a>
+      <a onclick="showTab('customer-designs')">
+        <span class="nav-icon">🎨</span> <span data-i18n="d.nav.designs">Customer Designs</span>
+      </a>
+      <a onclick="showTab('customer-measurements')">
+        <span class="nav-icon">📏</span> <span data-i18n="d.nav.measurements">Measurements</span>
+      </a>
+      <a onclick="showTab('customer-payments')">
+        <span class="nav-icon">💳</span> <span data-i18n="d.nav.payments">Payments</span>
+      </a>
+      <a onclick="showTab('upload-preview')">
+        <span class="nav-icon">📸</span> <span data-i18n="d.nav.uploadpreview">Upload Preview</span>
+      </a>
+      <a onclick="showTab('chat')">
+        <span class="nav-icon">💬</span> <span data-i18n="d.nav.chat">Chat with Customer</span>
+      </a>
+      <a onclick="showTab('customer-delivery')">
+        <span class="nav-icon">🚚</span> <span data-i18n="d.nav.delivery">Delivery Info</span>
+      </a>
+      <a onclick="showTab('inventory')">
+        <span class="nav-icon">📋</span> <span data-i18n="d.nav.inventory">Inventory</span>
+      </a>
+      <a onclick="logoutDesigner()" class="logout-btn">
+        <span class="nav-icon">🚪</span> <span data-i18n="d.nav.logout">Logout</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer" data-i18n="d.footer">SmartServe SMEs Platform</div>
+  </div>
+
+  <!-- ── MAIN CONTENT ── -->
+  <div class="content">
+
+    <!-- Select Customer -->
+    <div id="customer-selection" class="tab-content active">
+      <div class="page-header">
+        <h1 data-i18n="d.sel.h1">👤 Select Customer</h1>
+        <p data-i18n="d.sel.p">Choose a customer to view their order details</p>
+      </div>
+      <div class="card">
+        <h2 data-i18n="d.sel.h2">🧵 Your Assigned Customers</h2>
+        <select id="customerSelect">
+          <option value="" data-i18n="d.sel.opt">— Select a Customer —</option>
+        </select>
+        <p style="color:rgba(255,255,255,0.45); font-size:0.82rem; margin-top:-8px;" data-i18n="d.sel.hint">
+          Selecting a customer loads their designs, measurements, payments and chat.
+        </p>
+      </div>
+    </div>
+
+    <!-- Customer Designs -->
+    <div id="customer-designs" class="tab-content">
+      <div class="page-header">
+        <h1 data-i18n="d.designs.h1">🎨 Customer Designs</h1>
+        <p data-i18n="d.designs.p">Design references uploaded by the selected customer</p>
+      </div>
+      <div class="card">
+        <h2 data-i18n="d.designs.h2">🖼️ Uploaded Designs</h2>
+        <ul id="design-list"><li style="color:rgba(255,255,255,0.4);" data-i18n="d.selectfirst">Select a customer first.</li></ul>
+      </div>
+    </div>
+
+    <!-- Measurements -->
+    <div id="customer-measurements" class="tab-content">
+      <div class="page-header">
+        <h1 data-i18n="d.meas.h1">📏 Customer Measurements</h1>
+        <p data-i18n="d.meas.p">Body measurements submitted by the customer</p>
+      </div>
+      <div class="card">
+        <h2 data-i18n="d.meas.h2">📐 Measurement Records</h2>
+        <div id="measurement-info" style="color:rgba(255,255,255,0.5);" data-i18n="d.selectfirst">Select a customer first.</div>
+      </div>
+    </div>
+
+    <!-- Payments -->
+    <div id="customer-payments" class="tab-content">
+      <div class="page-header">
+        <h1 data-i18n="d.pay.h1">💳 Customer Payments</h1>
+        <p data-i18n="d.pay.p">Payment history for the selected customer</p>
+      </div>
+      <div class="card">
+        <h2 data-i18n="d.pay.h2">💰 Payment Records</h2>
+        <ul id="payment-list"><li style="color:rgba(255,255,255,0.4);" data-i18n="d.selectfirst">Select a customer first.</li></ul>
+      </div>
+    </div>
+
+    <!-- Upload Preview -->
+    <div id="upload-preview" class="tab-content">
+      <div class="page-header">
+        <h1 data-i18n="d.prev.h1">📸 Upload Preview</h1>
+        <p data-i18n="d.prev.p">Send a garment preview image to your customer</p>
+      </div>
+      <div class="card">
+        <h2 data-i18n="d.prev.h2">🪡 Share Your Work</h2>
+        <label style="color:rgba(255,255,255,0.6); font-size:0.85rem; display:block; margin-bottom:8px;" data-i18n="d.prev.label">
+          Select preview image
+        </label>
+        <input type="file" id="previewImage" accept="image/*">
+        <button class="btn btn-gold" id="uploadPreviewButton" data-i18n="d.prev.btn">
+          📤 Upload Preview
+        </button>
+        <p id="preview-message" style="margin-top:14px; color:var(--gold-light); font-size:0.88rem;"></p>
+      </div>
+    </div>
+
+    <!-- Chat -->
+    <div id="chat" class="tab-content">
+      <div class="page-header">
+        <h1 data-i18n="d.chat.h1">💬 Chat with Customer</h1>
+        <p data-i18n="d.chat.p">Discuss design details, fittings and delivery</p>
+      </div>
+      <div class="card">
+        <h2 data-i18n="d.chat.h2">🗨️ Conversation</h2>
+        <div id="chat-display">
+          <p style="color:rgba(255,255,255,0.35); font-size:0.85rem;" data-i18n="d.chat.empty">No messages yet.</p>
+        </div>
+        <textarea id="designerMessage" rows="3" data-i18n-placeholder="d.chat.placeholder" placeholder="Type your message to the customer…"></textarea>
+        <button class="btn btn-gold" id="sendDesignerMessageButton" data-i18n="d.chat.send">
+          ✉️ Send Message
+        </button>
+      </div>
+      <script src="designer-dashboard.js"></script>
+    </div>
+
+    <!-- Customer Delivery Info -->
+    <div id="customer-delivery" class="tab-content">
+      <div class="page-header">
+        <h1 data-i18n="d.deliv.h1">🚚 Customer Delivery Info</h1>
+        <p data-i18n="d.deliv.p">View how the selected customer wants to receive their order</p>
+      </div>
+      <div class="card">
+        <h2 data-i18n="d.deliv.h2">📦 Delivery Preference</h2>
+        <div id="delivery-info-box">
+          <p style="color:rgba(255,255,255,0.4);" data-i18n="d.deliv.hint">Select a customer first to view their delivery preference.</p>
+        </div>
+        <div id="mark-delivered-section" style="display:none; margin-top:28px; padding-top:24px; border-top:1px solid rgba(212,168,67,0.2);">
+          <h2 style="font-size:1.1rem; margin-bottom:12px;" data-i18n="d.deliv.mark.h">✅ Mark Order as Delivered</h2>
+          <p style="color:rgba(255,255,255,0.55); font-size:0.85rem; margin-bottom:16px;" data-i18n="d.deliv.mark.p">
+            Once the garment has been handed over or dispatched, mark it as delivered. This saves a record to your inventory.
+          </p>
+          <button class="btn btn-gold" id="markDeliveredBtn" onclick="markTailoringDelivered()" data-i18n="d.deliv.mark.btn">
+            🚚 Mark as Delivered &amp; Save to Inventory
+          </button>
+          <p id="deliveredMsg" style="margin-top:12px; font-size:0.88rem;"></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── INVENTORY ── -->
+    <div id="inventory" class="tab-content">
+      <div class="page-header" style="display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+        <div>
+          <h1 data-i18n="d.inv.h1">📋 Inventory</h1>
+          <p data-i18n="d.inv.p">All customer records across designs, measurements, deliveries and previews</p>
+        </div>
+        <button class="btn btn-gold inv-refresh-btn" onclick="fetchInventory()" data-i18n="d.inv.refresh">🔄 Refresh</button>
+      </div>
+
+      <div class="stats-grid" id="inv-stats">
+        <div class="stat-card"><span class="stat-icon">👥</span><div class="stat-value" id="stat-customers">—</div><div class="stat-label" data-i18n="d.inv.stat.customers">Customers</div></div>
+        <div class="stat-card"><span class="stat-icon">🎨</span><div class="stat-value" id="stat-designs">—</div><div class="stat-label" data-i18n="d.inv.stat.designs">Designs</div></div>
+        <div class="stat-card"><span class="stat-icon">📏</span><div class="stat-value" id="stat-measurements">—</div><div class="stat-label" data-i18n="d.inv.stat.meas">Measurements</div></div>
+        <div class="stat-card"><span class="stat-icon">🏪</span><div class="stat-value" id="stat-pickup">—</div><div class="stat-label" data-i18n="d.inv.stat.pickup">Pick-ups</div></div>
+        <div class="stat-card"><span class="stat-icon">🚚</span><div class="stat-value" id="stat-delivery">—</div><div class="stat-label" data-i18n="d.inv.stat.delivery">Deliveries</div></div>
+        <div class="stat-card"><span class="stat-icon">📸</span><div class="stat-value" id="stat-previews">—</div><div class="stat-label" data-i18n="d.inv.stat.previews">Previews</div></div>
+      </div>
+
+      <div class="inv-search">
+        <input type="text" id="inv-search-input" data-i18n-placeholder="d.inv.search" placeholder="🔍  Search by customer name…" oninput="filterInventory()">
+        <select id="inv-section-filter" onchange="filterInventory()">
+          <option value="all" data-i18n="d.inv.filter.all">All Sections</option>
+          <option value="customers" data-i18n="d.inv.stat.customers">Customers</option>
+          <option value="designs" data-i18n="d.inv.stat.designs">Designs</option>
+          <option value="measurements" data-i18n="d.inv.stat.meas">Measurements</option>
+          <option value="deliveries" data-i18n="d.inv.filter.deliv">Delivery Preferences</option>
+          <option value="delivered-orders" data-i18n="d.inv.filter.delivered">Delivered Orders</option>
+          <option value="previews" data-i18n="d.inv.stat.previews">Previews</option>
+        </select>
+      </div>
+
+      <div class="inv-section" id="section-customers">
+        <div class="inv-section-title" data-i18n="d.inv.sec.customers">👥 Customers</div>
+        <div class="inv-table-wrap"><table>
+          <thead><tr><th>#</th><th data-i18n="d.tbl.name">Name</th><th data-i18n="d.tbl.email">Email</th></tr></thead>
+          <tbody id="tbl-customers"></tbody>
+        </table></div>
+      </div>
+
+      <div class="inv-section" id="section-designs">
+        <div class="inv-section-title" data-i18n="d.inv.sec.designs">🎨 Uploaded Designs</div>
+        <div class="inv-table-wrap"><table>
+          <thead><tr><th>#</th><th data-i18n="d.tbl.preview">Preview</th><th data-i18n="d.tbl.customer">Customer</th><th data-i18n="d.tbl.uploaded">Uploaded</th></tr></thead>
+          <tbody id="tbl-designs"></tbody>
+        </table></div>
+      </div>
+
+      <div class="inv-section" id="section-measurements">
+        <div class="inv-section-title" data-i18n="d.inv.sec.meas">📏 Measurements</div>
+        <div class="inv-table-wrap"><table>
+          <thead><tr><th>#</th><th data-i18n="d.tbl.customer">Customer</th><th data-i18n="d.tbl.garment">Garment</th><th data-i18n="d.tbl.keymeas">Key Measurements</th><th data-i18n="d.tbl.date">Date</th></tr></thead>
+          <tbody id="tbl-measurements"></tbody>
+        </table></div>
+      </div>
+
+      <div class="inv-section" id="section-deliveries">
+        <div class="inv-section-title" data-i18n="d.inv.sec.deliv">🚚 Delivery Preferences</div>
+        <div class="inv-table-wrap"><table>
+          <thead><tr><th>#</th><th data-i18n="d.tbl.customer">Customer</th><th data-i18n="d.tbl.option">Option</th><th data-i18n="d.tbl.address">Address</th><th data-i18n="d.tbl.notes">Notes</th><th data-i18n="d.tbl.updated">Updated</th></tr></thead>
+          <tbody id="tbl-deliveries"></tbody>
+        </table></div>
+      </div>
+
+      <div class="inv-section" id="section-delivered-orders">
+        <div class="inv-section-title" data-i18n="d.inv.sec.delivered">✅ Delivered Orders</div>
+        <div class="inv-table-wrap"><table>
+          <thead><tr><th>#</th><th data-i18n="d.tbl.customer">Customer</th><th data-i18n="d.tbl.garment">Garment</th><th data-i18n="d.tbl.delivtype">Delivery Type</th><th data-i18n="d.tbl.address">Address</th><th data-i18n="d.tbl.deliveredat">Delivered At</th></tr></thead>
+          <tbody id="tbl-delivered-orders"></tbody>
+        </table></div>
+      </div>
+
+      <div class="inv-section" id="section-previews">
+        <div class="inv-section-title" data-i18n="d.inv.sec.previews">📸 Uploaded Previews</div>
+        <div class="inv-table-wrap"><table>
+          <thead><tr><th>#</th><th data-i18n="d.tbl.preview">Image</th><th data-i18n="d.tbl.customer">Customer</th><th data-i18n="d.tbl.uploaded">Uploaded</th></tr></thead>
+          <tbody id="tbl-previews"></tbody>
+        </table></div>
+      </div>
+
+    </div><!-- /inventory -->
+
+  </div><!-- /content -->
+  <script src="lang.js"></script>
+</body>
+</html>

@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agrovet - Customer Dashboard</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=Merriweather:wght@700&display=swap');
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Poppins', sans-serif; display: flex; min-height: 100vh; background: linear-gradient(rgba(0,0,0,0.6),rgba(0,0,0,0.6)), url('https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=1400') no-repeat center/cover fixed; color: #f0f0f0; }
+    .sidebar { width: 260px; background: rgba(20,60,10,0.95); backdrop-filter: blur(8px); height: 100vh; padding: 30px 20px; position: fixed; display: flex; flex-direction: column; box-shadow: 4px 0 20px rgba(0,0,0,0.4); }
+    .sidebar h2 { font-family: 'Merriweather', serif; font-size: 1.1rem; color: #b8f0a0; text-align: center; margin-bottom: 30px; }
+    .sidebar a { display: block; color: #fff; text-decoration: none; padding: 12px 16px; margin: 6px 0; border-radius: 8px; font-weight: 500; cursor: pointer; transition: all 0.3s; }
+    .sidebar a:hover { background: rgba(255,255,255,0.2); transform: translateX(6px); }
+    .content { margin-left: 260px; flex: 1; padding: 40px; overflow-y: auto; }
+    .tab-content { display: none; animation: fadeIn 0.5s ease; }
+    .tab-content.active { display: block; }
+    .card { background: rgba(255,255,255,0.1); backdrop-filter: blur(6px); border-radius: 12px; padding: 24px; margin-bottom: 20px; }
+    h1 { font-family: 'Merriweather', serif; font-size: 1.8rem; margin-bottom: 8px; color: #b8f0a0; }
+    h2 { font-family: 'Merriweather', serif; color: #b8f0a0; margin-bottom: 16px; }
+    p { color: #ddd; line-height: 1.7; }
+    .cat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; margin-top: 10px; }
+    .cat-item { background: rgba(255,255,255,0.12); border-radius: 10px; padding: 18px; text-align: center; cursor: pointer; transition: all 0.3s; }
+    .cat-item:hover { background: rgba(255,255,255,0.22); transform: translateY(-4px); }
+    .cat-item .icon { font-size: 2rem; margin-bottom: 8px; }
+    .cat-item .name { font-size: 0.85rem; font-weight: 600; }
+    .cat-item .price { font-size: 0.8rem; color: #90ee90; margin-top: 4px; }
+    select, input, textarea { width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.15); color: #fff; font-family: 'Poppins', sans-serif; margin-bottom: 14px; }
+    select option { color: #111; }
+    button { background: linear-gradient(135deg, #1b5e20, #388e3c); color: #fff; border: none; padding: 11px 26px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s; }
+    button:hover { transform: scale(1.05); opacity: 0.9; }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <h2>🌱 Agrovet Customer</h2>
+    <a onclick="showTab('home')">🏠 Home</a>
+    <a onclick="showTab('choose-provider')">🤝 Choose Provider</a>
+    <a onclick="showTab('products')">🌿 Browse Products</a>
+    <a onclick="showTab('order')">🛒 Place Order</a>
+    <a onclick="showTab('vet')">🐄 Book Vet Service</a>
+    <a onclick="showTab('orders')">📦 My Orders</a>
+    <a onclick="showTab('advice')">💡 Farming Advice</a>
+    <a onclick="logout()">🚪 Logout</a>
+  </div>
+
+  <div class="content">
+    <div id="home" class="tab-content active">
+      <h1>Welcome to Agrovet</h1>
+      <p>Browse agricultural products, book veterinary services, and get expert farming advice.</p>
+      <div class="cat-grid" style="margin-top:30px;">
+        <div class="cat-item" onclick="showTab('products')"><div class="icon">🌿</div><div class="name">Products</div></div>
+        <div class="cat-item" onclick="showTab('order')"><div class="icon">🛒</div><div class="name">Order</div></div>
+        <div class="cat-item" onclick="showTab('vet')"><div class="icon">🐄</div><div class="name">Vet Service</div></div>
+        <div class="cat-item" onclick="showTab('advice')"><div class="icon">💡</div><div class="name">Advice</div></div>
+      </div>
+    </div>
+
+    <div id="choose-provider" class="tab-content">
+  <h2>Choose Your Provider</h2>
+  <p style="margin-bottom:20px;">Select a provider below. They will be able to see and serve you.</p>
+  <div id="provider-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-top:10px;"></div>
+  <div id="provider-status" style="margin-top:16px;font-size:0.95rem;"></div>
+</div>
+
+    <div id="products" class="tab-content">
+      <h2>Agricultural Products</h2>
+      <div class="cat-grid">
+        <div class="cat-item"><div class="icon">🌱</div><div class="name">Seeds</div><div class="price">From KSh 200</div></div>
+        <div class="cat-item"><div class="icon">🧪</div><div class="name">Fertilisers</div><div class="price">From KSh 1,500</div></div>
+        <div class="cat-item"><div class="icon">🐛</div><div class="name">Pesticides</div><div class="price">From KSh 800</div></div>
+        <div class="cat-item"><div class="icon">💊</div><div class="name">Animal Drugs</div><div class="price">From KSh 300</div></div>
+        <div class="cat-item"><div class="icon">🐔</div><div class="name">Poultry Feeds</div><div class="price">From KSh 2,200</div></div>
+        <div class="cat-item"><div class="icon">🐄</div><div class="name">Dairy Feeds</div><div class="price">From KSh 2,800</div></div>
+        <div class="cat-item"><div class="icon">🚿</div><div class="name">Irrigation</div><div class="price">From KSh 1,200</div></div>
+        <div class="cat-item"><div class="icon">🧰</div><div class="name">Farm Tools</div><div class="price">From KSh 500</div></div>
+      </div>
+    </div>
+
+    <div id="order" class="tab-content">
+      <h2>Place an Order</h2>
+      <div class="card">
+        <label>Product Category</label>
+        <select><option>Seeds</option><option>Fertilisers</option><option>Pesticides</option><option>Animal Drugs</option><option>Feeds</option><option>Farm Tools</option></select>
+        <label>Product Name</label>
+        <input type="text" placeholder="e.g. Urea Fertiliser 50kg">
+        <label>Quantity</label>
+        <input type="number" min="1" value="1">
+        <label>Delivery or Pickup?</label>
+        <select><option>Pickup from Store</option><option>Delivery to Farm</option></select>
+        <label>Delivery Address (if applicable)</label>
+        <textarea placeholder="Farm location / address..."></textarea>
+        <button>Place Order</button>
+      </div>
+    </div>
+
+    <div id="vet" class="tab-content">
+      <h2>Book Veterinary Service</h2>
+      <div class="card">
+        <label>Animal Type</label>
+        <select><option>Cattle</option><option>Goats</option><option>Sheep</option><option>Poultry</option><option>Pigs</option><option>Other</option></select>
+        <label>Service Needed</label>
+        <select><option>Vaccination</option><option>Deworming</option><option>Treatment / Diagnosis</option><option>Artificial Insemination</option><option>General Checkup</option></select>
+        <label>Number of Animals</label>
+        <input type="number" min="1" value="1">
+        <label>Preferred Date</label>
+        <input type="date">
+        <label>Farm Location</label>
+        <textarea placeholder="Describe how to get to your farm..."></textarea>
+        <button>Book Vet Visit</button>
+      </div>
+    </div>
+
+    <div id="orders" class="tab-content">
+      <h2>My Orders</h2>
+      <div class="card"><p>🌱 <strong>Hybrid Maize Seeds x5 packets</strong> — 8 May 2026 — <span style="color:#b3ffb3;">Delivered</span></p></div>
+      <div class="card"><p>🧪 <strong>CAN Fertiliser x2 bags</strong> — 10 May 2026 — <span style="color:#ffe0a0;">Processing</span></p></div>
+    </div>
+
+    <div id="advice" class="tab-content">
+      <h2>Farming Advice</h2>
+      <div class="card">
+        <h2 style="font-size:1rem;margin-bottom:10px;">🌽 Maize Growing Tips</h2>
+        <p>Plant during the onset of long rains. Use certified hybrid seeds and apply DAP fertiliser at planting. Top-dress with CAN at knee height.</p>
+      </div>
+      <div class="card">
+        <h2 style="font-size:1rem;margin-bottom:10px;">🐄 Dairy Cattle Care</h2>
+        <p>Deworm every 3 months. Vaccinate against FMD and Lumpy Skin Disease. Provide clean water and balanced dairy meal for optimal milk production.</p>
+      </div>
+      <div class="card">
+        <label>Ask a Question</label>
+        <textarea placeholder="e.g. What fertiliser is best for tomatoes?"></textarea>
+        <button>Ask Expert</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const BASE = 'http://localhost:5501';
+
+    // Auth guard — runs immediately on page load
+    (function() {
+      if (!localStorage.getItem('user')) {
+        window.location.replace('business-select.html');
+      }
+      history.replaceState(null, '', window.location.href);
+    })();
+
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const businessType = user.businessType || '';
+
+    function showTab(id) {
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      if (id === 'choose-provider') loadProviders();
+    }
+
+    function loadProviders() {
+      const list = document.getElementById('provider-list');
+      const status = document.getElementById('provider-status');
+      list.innerHTML = '<p style="color:#ddd;">Loading providers...</p>';
+      status.innerHTML = '';
+      fetch(`${BASE}/available-providers?businessType=${encodeURIComponent(businessType)}`)
+        .then(r => r.json())
+        .then(providers => {
+          if (!providers.length) {
+            list.innerHTML = '<p style="color:#ddd;">No providers available at the moment.</p>';
+            return;
+          }
+          list.innerHTML = providers.map(p => `
+            <div style="background:rgba(255,255,255,0.12);border-radius:10px;padding:18px;text-align:center;">
+              <div style="font-size:1.5rem;margin-bottom:8px;">🏪</div>
+              <div style="font-weight:600;margin-bottom:4px;">${p.name}</div>
+              <div style="font-size:0.8rem;color:#ddd;margin-bottom:12px;">${p.email || ''}</div>
+              <button onclick="selectProvider(${p.id}, '${(p.name||'').replace(/'/g,"\\'")}', this)">Select</button>
+            </div>
+          `).join('');
+        })
+        .catch(() => {
+          list.innerHTML = '<p style="color:#ffaaaa;">Failed to load providers. Please try again.</p>';
+        });
+    }
+
+    function selectProvider(providerId, providerName, btn) {
+      btn.disabled = true;
+      btn.textContent = 'Selecting...';
+      fetch(`${BASE}/select-provider`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customerId: user.id, providerId })
+      })
+        .then(r => r.json())
+        .then(() => {
+          document.getElementById('provider-status').innerHTML =
+            `<span style="color:#b3ffb3;">✅ You have selected <strong>${providerName}</strong> as your provider.</span>`;
+          btn.textContent = '✅ Selected';
+        })
+        .catch(() => {
+          document.getElementById('provider-status').innerHTML =
+            '<span style="color:#ffaaaa;">❌ Failed to select provider. Please try again.</span>';
+          btn.disabled = false;
+          btn.textContent = 'Select';
+        });
+    }
+
+    function logout() {
+      localStorage.removeItem('user');
+      localStorage.removeItem('businessType');
+      window.location.replace('business-select.html');
+    }
+  </script>
+  <script src="lang.js"></script>
+</body>
+</html>

@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartServe SMEs – Connecting Kenyan Businesses with Customers</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Poppins:wght@300;400;500;600&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green:   #006600;
+      --red:     #bb0000;
+      --gold:    #d4a843;
+      --dark:    #0d0d0d;
+      --light:   #f9f6f0;
+      --text:    #1a1a1a;
+    }
+
+    body { font-family: 'Poppins', sans-serif; color: var(--text); background: #fff; }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 6%;
+      background: rgba(0,0,0,0.85);
+      backdrop-filter: blur(10px);
+    }
+    .nav-brand {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.4rem; color: var(--gold); letter-spacing: 1px;
+    }
+    .nav-brand span { color: #fff; }
+    .nav-links { display: flex; gap: 10px; flex-wrap: wrap; }
+    .nav-links a {
+      color: rgba(255,255,255,0.85); text-decoration: none;
+      padding: 8px 16px; border-radius: 6px; font-size: 0.88rem; font-weight: 500;
+      transition: all 0.2s;
+    }
+    .nav-links a:hover { background: rgba(255,255,255,0.12); color: #fff; }
+    .nav-links .btn-cta {
+      background: var(--green); color: #fff; border-radius: 8px;
+    }
+    .nav-links .btn-cta:hover { background: #008800; }
+
+    /* ── LANG SWITCHER ── */
+    .lang-switcher {
+      display: flex; align-items: center; gap: 6px;
+      background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 20px; padding: 4px 10px;
+    }
+    .lang-switcher span { font-size: 0.8rem; color: rgba(255,255,255,0.6); }
+    .lang-select {
+      background: transparent; border: none; color: #fff;
+      font-family: 'Poppins', sans-serif; font-size: 0.82rem; font-weight: 600;
+      cursor: pointer; outline: none; padding: 2px 4px;
+    }
+    .lang-select option { color: #111; background: #fff; }
+
+    /* ── HERO ── */
+    .hero {
+      min-height: 100vh;
+      background: linear-gradient(135deg, rgba(0,0,0,0.72) 0%, rgba(0,102,0,0.55) 100%),
+        url('https://images.unsplash.com/photo-1611348586804-61bf6c080437?w=1600&q=80') center/cover no-repeat;
+      display: flex; align-items: center; justify-content: center;
+      text-align: center; padding: 120px 6% 80px;
+    }
+    .hero-content { max-width: 780px; }
+    .hero-badge {
+      display: inline-block; background: var(--gold); color: #000;
+      font-size: 0.75rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+      padding: 6px 18px; border-radius: 20px; margin-bottom: 24px;
+    }
+    .hero h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(2.2rem, 5vw, 3.8rem);
+      color: #fff; line-height: 1.2; margin-bottom: 20px;
+    }
+    .hero h1 span { color: var(--gold); }
+    .hero p {
+      font-size: 1.1rem; color: rgba(255,255,255,0.82);
+      line-height: 1.8; margin-bottom: 36px; max-width: 600px; margin-left: auto; margin-right: auto;
+    }
+    .hero-btns { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+    .btn-primary {
+      background: var(--green); color: #fff;
+      padding: 14px 32px; border-radius: 10px; font-weight: 600;
+      font-size: 0.95rem; text-decoration: none; transition: all 0.25s;
+      border: 2px solid var(--green);
+    }
+    .btn-primary:hover { background: #008800; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,102,0,0.4); }
+    .btn-outline {
+      background: transparent; color: #fff;
+      padding: 14px 32px; border-radius: 10px; font-weight: 600;
+      font-size: 0.95rem; text-decoration: none; transition: all 0.25s;
+      border: 2px solid rgba(255,255,255,0.5);
+    }
+    .btn-outline:hover { border-color: #fff; background: rgba(255,255,255,0.1); }
+
+    /* ── STATS BAR ── */
+    .stats-bar {
+      background: var(--dark); padding: 40px 6%;
+      display: flex; justify-content: center; gap: 60px; flex-wrap: wrap;
+    }
+    .stat { text-align: center; }
+    .stat .num { font-family: 'Playfair Display', serif; font-size: 2.4rem; color: var(--gold); font-weight: 700; }
+    .stat .lbl { font-size: 0.82rem; color: rgba(255,255,255,0.55); margin-top: 4px; text-transform: uppercase; letter-spacing: 1px; }
+
+    /* ── SECTION SHARED ── */
+    section { padding: 90px 6%; }
+    .section-tag {
+      display: inline-block; background: rgba(0,102,0,0.1); color: var(--green);
+      font-size: 0.75rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+      padding: 6px 16px; border-radius: 20px; margin-bottom: 14px;
+      border: 1px solid rgba(0,102,0,0.25);
+    }
+    .section-title {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(1.8rem, 3.5vw, 2.8rem);
+      color: var(--text); line-height: 1.25; margin-bottom: 16px;
+    }
+    .section-title span { color: var(--green); }
+    .section-sub { font-size: 1rem; color: #555; line-height: 1.8; max-width: 600px; }
+
+    /* ── PHOTO STRIP ── */
+    .photo-strip {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      height: 280px;
+      overflow: hidden;
+    }
+    .photo-strip div {
+      overflow: hidden;
+      position: relative;
+    }
+    .photo-strip div img {
+      width: 100%; height: 100%; object-fit: cover;
+      transition: transform 0.5s ease;
+      display: block;
+    }
+    .photo-strip div:hover img { transform: scale(1.07); }
+    .photo-strip div .strip-label {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      background: linear-gradient(transparent, rgba(0,0,0,0.7));
+      color: #fff; font-size: 0.78rem; font-weight: 600;
+      padding: 20px 14px 10px; text-align: center;
+    }
+
+    /* ── HOW IT WORKS ── */
+    .how { background: var(--light); }
+    .steps-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 30px; margin-top: 50px;
+    }
+    .step-card {
+      background: #fff; border-radius: 18px; padding: 32px 24px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.07);
+      border-top: 4px solid var(--green);
+      transition: transform 0.25s;
+    }
+    .step-card:hover { transform: translateY(-6px); }
+    .step-num {
+      width: 48px; height: 48px; border-radius: 50%;
+      background: var(--green); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 1.1rem; margin-bottom: 18px;
+    }
+    .step-card h3 { font-size: 1.05rem; font-weight: 600; margin-bottom: 10px; }
+    .step-card p { font-size: 0.88rem; color: #666; line-height: 1.7; }
+
+    /* ── BUSINESSES GRID ── */
+    .businesses { background: #fff; }
+    .biz-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px; margin-top: 50px;
+    }
+    .biz-card {
+      border-radius: 18px; overflow: hidden;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.1);
+      transition: transform 0.25s, box-shadow 0.25s;
+      position: relative;
+    }
+    .biz-card:hover { transform: translateY(-6px); box-shadow: 0 12px 36px rgba(0,0,0,0.15); }
+    .biz-card img { width: 100%; height: 220px; object-fit: cover; display: block; }
+    .biz-card-body { padding: 22px 20px; }
+    .biz-card-body .icon { font-size: 1.8rem; margin-bottom: 10px; }
+    .biz-card-body h3 { font-size: 1.05rem; font-weight: 600; margin-bottom: 8px; }
+    .biz-card-body p { font-size: 0.85rem; color: #666; line-height: 1.6; }
+    .biz-badge {
+      position: absolute; top: 14px; left: 14px;
+      background: var(--green); color: #fff;
+      font-size: 0.72rem; font-weight: 700; padding: 4px 12px; border-radius: 20px;
+    }
+
+    /* ── TESTIMONIALS ── */
+    .testimonials { background: var(--dark); }
+    .testimonials .section-title { color: #fff; }
+    .testimonials .section-tag { background: rgba(212,168,67,0.15); color: var(--gold); border-color: rgba(212,168,67,0.3); }
+    .testi-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px; margin-top: 50px;
+    }
+    .testi-card {
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 18px; padding: 28px 24px;
+    }
+    .testi-card .quote { font-size: 2.5rem; color: var(--gold); line-height: 1; margin-bottom: 12px; }
+    .testi-card p { font-size: 0.9rem; color: rgba(255,255,255,0.75); line-height: 1.8; margin-bottom: 20px; }
+    .testi-author { display: flex; align-items: center; gap: 12px; }
+    .testi-author img { width: 46px; height: 46px; border-radius: 50%; object-fit: cover; border: 2px solid var(--gold); }
+    .testi-author .name { font-weight: 600; color: #fff; font-size: 0.9rem; }
+    .testi-author .role { font-size: 0.78rem; color: rgba(255,255,255,0.45); }
+
+    /* ── CTA BANNER ── */
+    .cta-banner {
+      background: linear-gradient(135deg, var(--green) 0%, #004400 100%);
+      padding: 80px 6%; text-align: center;
+    }
+    .cta-banner h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(1.8rem, 3.5vw, 2.8rem); color: #fff; margin-bottom: 16px;
+    }
+    .cta-banner p { color: rgba(255,255,255,0.8); font-size: 1rem; margin-bottom: 32px; }
+    .cta-banner .btn-primary { background: var(--gold); color: #000; border-color: var(--gold); font-size: 1rem; padding: 16px 40px; }
+    .cta-banner .btn-primary:hover { background: #f0c96a; }
+
+    /* ── FOOTER ── */
+    footer {
+      background: #0a0a0a; padding: 50px 6% 30px;
+      display: flex; flex-wrap: wrap; gap: 40px; justify-content: space-between;
+    }
+    .footer-brand .name { font-family: 'Playfair Display', serif; font-size: 1.4rem; color: var(--gold); }
+    .footer-brand p { font-size: 0.85rem; color: rgba(255,255,255,0.45); margin-top: 10px; max-width: 260px; line-height: 1.7; }
+    .footer-links h4 { color: #fff; font-size: 0.9rem; margin-bottom: 14px; }
+    .footer-links a { display: block; color: rgba(255,255,255,0.5); text-decoration: none; font-size: 0.85rem; margin-bottom: 8px; transition: color 0.2s; }
+    .footer-links a:hover { color: var(--gold); }
+    .footer-bottom { width: 100%; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 20px; margin-top: 10px; text-align: center; font-size: 0.8rem; color: rgba(255,255,255,0.3); }
+
+    /* ── KENYAN FLAG STRIPE ── */
+    .flag-stripe { height: 5px; background: linear-gradient(90deg, #006600 33%, #000 33%, #000 66%, #bb0000 66%); }
+
+    @media (max-width: 640px) {
+      .stats-bar { gap: 30px; }
+      .nav-links a { padding: 6px 10px; font-size: 0.8rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Kenyan flag stripe at top -->
+  <div class="flag-stripe"></div>
+
+  <!-- NAV -->
+  <nav>
+    <div class="nav-brand">Smart<span>Serve</span> SMEs</div>
+    <div class="nav-links">
+      <a href="index.html" data-i18n="nav.home">Home</a>
+      <a href="about.html" data-i18n="nav.about">About</a>
+      <a href="services.html" data-i18n="nav.services">Services</a>
+      <a href="contact.html" data-i18n="nav.contact">Contact</a>
+      <div class="lang-switcher">
+        <span>🌐</span>
+        <select class="lang-select" onchange="changeLanguage(this.value)">
+          <option value="en">English</option>
+          <option value="sw">Kiswahili</option>
+        </select>
+      </div>
+      <a href="business-select.html" class="btn-cta" data-i18n="nav.getstarted">Get Started →</a>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-content">
+      <div class="hero-badge" data-i18n="hero.badge">🇰🇪 Built for Kenyan Entrepreneurs</div>
+      <h1><span data-i18n="hero.h1a">Connecting</span> <span data-i18n="hero.h1b">Small Businesses</span> <span data-i18n="hero.h1c">with More Customers</span></h1>
+      <p data-i18n="hero.p">SmartServe SMEs is Kenya's digital platform for tailors, salons, restaurants, hardware shops, agrovets, cyber cafés and boutiques — helping you manage orders, reach customers, and grow your business online.</p>
+      <div class="hero-btns">
+        <a href="business-select.html" class="btn-primary" data-i18n="hero.btn1">Start Free Today 🚀</a>
+        <a href="about.html" class="btn-outline" data-i18n="hero.btn2">Learn More</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- STATS -->
+  <div class="stats-bar">
+    <div class="stat"><div class="num">7+</div><div class="lbl" data-i18n="stats.biz">Business Types</div></div>
+    <div class="stat"><div class="num">100%</div><div class="lbl" data-i18n="stats.built">Kenyan Built</div></div>
+    <div class="stat"><div class="num">M-Pesa</div><div class="lbl" data-i18n="stats.pay">Payments Ready</div></div>
+    <div class="stat"><div class="num">24/7</div><div class="lbl" data-i18n="stats.online">Always Online</div></div>
+  </div>
+
+  <!-- PHOTO STRIP -->
+  <div class="photo-strip">
+    <div>
+      <img src="https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=500&q=80" alt="Kenyan tailor sewing">
+      <div class="strip-label">✂️ Tailoring</div>
+    </div>
+    <div>
+      <img src="https://images.unsplash.com/photo-1560066984-138dadb4c035?w=500&q=80" alt="African salon">
+      <div class="strip-label">💇 Salon</div>
+    </div>
+    <div>
+      <img src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=500&q=80" alt="Kenyan food restaurant">
+      <div class="strip-label">🍽️ Restaurant</div>
+    </div>
+    <div>
+      <img src="https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=500&q=80" alt="African market shopping">
+      <div class="strip-label">🛍️ Boutique</div>
+    </div>
+  </div>
+
+  <!-- HOW IT WORKS -->
+  <section class="how">
+    <div class="section-tag" data-i18n="how.tag">How It Works</div>
+    <h2 class="section-title"><span data-i18n="how.title1">Simple. Fast.</span> <span data-i18n="how.title2">Kenyan.</span></h2>
+    <p class="section-sub" data-i18n="how.sub">Whether you're a provider or a customer, getting started takes less than 2 minutes.</p>
+    <div class="steps-grid">
+      <div class="step-card">
+        <div class="step-num">1</div>
+        <h3 data-i18n="how.s1h">Choose Your Business Type</h3>
+        <p data-i18n="how.s1p">Select from tailoring, salon, restaurant, hardware, agrovet, cyber café or boutique.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">2</div>
+        <h3 data-i18n="how.s2h">Create Your Account</h3>
+        <p data-i18n="how.s2p">Sign up in minutes with email verification. Providers pay a small KSh 300/month subscription.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">3</div>
+        <h3 data-i18n="how.s3h">Connect with Customers</h3>
+        <p data-i18n="how.s3p">Customers find and select you. Manage orders, chat, and track deliveries — all in one place.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">4</div>
+        <h3 data-i18n="how.s4h">Get Paid via M-Pesa</h3>
+        <p data-i18n="how.s4p">Receive payments directly through M-Pesa. No cash handling, no delays.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- BUSINESSES WE SERVE -->
+  <section class="businesses">
+    <div class="section-tag" data-i18n="biz.tag">Our Business Categories</div>
+    <h2 class="section-title"><span data-i18n="biz.title1">Every Kenyan</span> <span data-i18n="biz.title2">Hustle</span> <span data-i18n="biz.title3">Covered</span></h2>
+    <p class="section-sub" data-i18n="biz.sub">From Gikomba tailors to Westlands salons — we've built a dashboard for every type of small business.</p>
+    <div class="biz-grid">
+
+      <div class="biz-card">
+        <span class="biz-badge">✂️ Tailoring</span>
+        <img src="https://images.unsplash.com/photo-1594938298603-c8148c4b4e5b?w=600&q=80" alt="Kenyan tailor at work">
+        <div class="biz-card-body">
+          <h3 data-i18n="biz.tailor.h">Tailors & Designers</h3>
+          <p data-i18n="biz.tailor.p">Upload measurements, share design previews, chat with clients and manage garment orders digitally.</p>
+        </div>
+      </div>
+
+      <div class="biz-card">
+        <span class="biz-badge">💇 Salon</span>
+        <img src="https://images.unsplash.com/photo-1560066984-138dadb4c035?w=600&q=80" alt="African hair salon">
+        <div class="biz-card-body">
+          <h3 data-i18n="biz.salon.h">Salons & Barbershops</h3>
+          <p data-i18n="biz.salon.p">Book appointments, manage your client queue and showcase your styles to attract new customers.</p>
+        </div>
+      </div>
+
+      <div class="biz-card">
+        <span class="biz-badge">🍽️ Restaurant</span>
+        <img src="https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=600&q=80" alt="Kenyan restaurant">
+        <div class="biz-card-body">
+          <h3 data-i18n="biz.resto.h">Restaurants & Eateries</h3>
+          <p data-i18n="biz.resto.p">Take orders online, manage your menu and keep customers coming back with a professional presence.</p>
+        </div>
+      </div>
+
+      <div class="biz-card">
+        <span class="biz-badge">🛍️ Boutique</span>
+        <img src="https://images.unsplash.com/photo-1483985988355-763728e1935b?w=600&q=80" alt="African boutique fashion">
+        <div class="biz-card-body">
+          <h3 data-i18n="biz.boutique.h">Boutiques & Fashion Shops</h3>
+          <p data-i18n="biz.boutique.p">List your products, manage stock, take orders and offer home delivery — all from your dashboard.</p>
+        </div>
+      </div>
+
+      <div class="biz-card">
+        <span class="biz-badge">🌿 Agrovet</span>
+        <img src="https://images.unsplash.com/photo-1464226184884-fa280b87c399?w=600&q=80" alt="Kenyan farmer agrovet">
+        <div class="biz-card-body">
+          <h3 data-i18n="biz.agro.h">Agrovets & Farm Supplies</h3>
+          <p data-i18n="biz.agro.p">Connect farmers with your products. Manage inventory and orders for seeds, feeds and chemicals.</p>
+        </div>
+      </div>
+
+      <div class="biz-card">
+        <span class="biz-badge">🔧 Hardware</span>
+        <img src="https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=600&q=80" alt="Hardware shop Kenya">
+        <div class="biz-card-body">
+          <h3 data-i18n="biz.hw.h">Hardware & Building Supplies</h3>
+          <p data-i18n="biz.hw.p">Manage your product catalogue, take customer orders and track deliveries for your hardware business.</p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- TESTIMONIALS -->
+  <section class="testimonials">
+    <div class="section-tag" data-i18n="testi.tag">What People Say</div>
+    <h2 class="section-title"><span data-i18n="testi.title1">Trusted by Kenyan</span> <span style="color:var(--gold);" data-i18n="testi.title2">Entrepreneurs</span></h2>
+    <div class="testi-grid">
+
+      <div class="testi-card">
+        <div class="quote">"</div>
+        <p>Nimepata wateja wengi zaidi tangu nilianza kutumia SmartServe. Customers wanaweza kuona kazi yangu online na kunipigia order bila kuja dukani.</p>
+        <div class="testi-author">
+          <img src="https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=100&q=80" alt="Kenyan tailor">
+          <div>
+            <div class="name">Wanjiku M.</div>
+            <div class="role">Tailor, Gikomba Market, Nairobi</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="testi-card">
+        <div class="quote">"</div>
+        <p>My salon bookings have doubled. Customers book appointments from their phones and I get notified instantly. No more missed clients!</p>
+        <div class="testi-author">
+          <img src="https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=100&q=80" alt="Kenyan salon owner">
+          <div>
+            <div class="name">Akinyi O.</div>
+            <div class="role">Salon Owner, Kisumu</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="testi-card">
+        <div class="quote">"</div>
+        <p>The M-Pesa integration is a game changer. My hardware customers pay directly and I track every order. Business imekuwa rahisi sana.</p>
+        <div class="testi-author">
+          <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&q=80" alt="Kenyan business owner">
+          <div>
+            <div class="name">Kamau J.</div>
+            <div class="role">Hardware Shop, Thika Road</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- CTA BANNER -->
+  <div class="cta-banner">
+    <h2 data-i18n="cta.h">Ready to Grow Your Business?</h2>
+    <p data-i18n="cta.p">Join hundreds of Kenyan entrepreneurs already using SmartServe SMEs to connect with more customers.</p>
+    <a href="business-select.html" class="btn-primary" data-i18n="cta.btn">Get Started — It's Free</a>
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-brand">
+      <div class="name">SmartServe SMEs</div>
+      <p>Empowering Kenyan small businesses to connect, grow and thrive in the digital economy.</p>
+    </div>
+    <div class="footer-links">
+      <h4>Navigate</h4>
+      <a href="index.html">Home</a>
+      <a href="about.html">About Us</a>
+      <a href="services.html">Services</a>
+      <a href="contact.html">Contact</a>
+    </div>
+    <div class="footer-links">
+      <h4>Business Types</h4>
+      <a href="business-select.html">Tailoring</a>
+      <a href="business-select.html">Salon</a>
+      <a href="business-select.html">Restaurant</a>
+      <a href="business-select.html">Boutique</a>
+    </div>
+    <div class="footer-links">
+      <h4>Contact</h4>
+      <a href="tel:0796204927">📞 0796 204 927</a>
+      <a href="mailto:smartstitchtech01@gmail.com">✉️ smartstitchtech01@gmail.com</a>
+      <a href="#">📍 Nyeri, Kenya</a>
+    </div>
+    <div class="footer-bottom">
+      © 2025 SmartServe SMEs. Made with ❤️ in Kenya 🇰🇪
+    </div>
+  </footer>
+
+  <div class="flag-stripe"></div>
+
+  <script src="lang.js"></script>
+</body>
+</html>

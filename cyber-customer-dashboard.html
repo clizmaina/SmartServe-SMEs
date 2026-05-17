@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cyber Cafe - Customer Dashboard</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Poppins:wght@400;500;600&display=swap');
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Poppins', sans-serif; display: flex; min-height: 100vh; background: linear-gradient(rgba(0,0,0,0.75),rgba(0,0,0,0.75)), url('https://images.unsplash.com/photo-1518770660439-4636190af475?w=1400') no-repeat center/cover fixed; color: #e0ffe0; }
+    .sidebar { width: 260px; background: rgba(0,30,0,0.97); backdrop-filter: blur(8px); height: 100vh; padding: 30px 20px; position: fixed; display: flex; flex-direction: column; box-shadow: 4px 0 20px rgba(0,255,0,0.15); border-right: 1px solid rgba(0,255,0,0.2); }
+    .sidebar h2 { font-family: 'Share Tech Mono', monospace; font-size: 1.1rem; color: #00ff88; text-align: center; margin-bottom: 30px; }
+    .sidebar a { display: block; color: #a0ffa0; text-decoration: none; padding: 12px 16px; margin: 6px 0; border-radius: 8px; font-weight: 500; cursor: pointer; transition: all 0.3s; font-family: 'Share Tech Mono', monospace; font-size: 0.9rem; }
+    .sidebar a:hover { background: rgba(0,255,0,0.1); color: #00ff88; transform: translateX(6px); }
+    .content { margin-left: 260px; flex: 1; padding: 40px; overflow-y: auto; }
+    .tab-content { display: none; animation: fadeIn 0.5s ease; }
+    .tab-content.active { display: block; }
+    .card { background: rgba(0,255,0,0.05); border: 1px solid rgba(0,255,0,0.2); border-radius: 12px; padding: 24px; margin-bottom: 20px; }
+    h1 { font-family: 'Share Tech Mono', monospace; font-size: 2rem; margin-bottom: 8px; color: #00ff88; }
+    h2 { font-family: 'Share Tech Mono', monospace; color: #00ff88; margin-bottom: 16px; }
+    p { color: #a0ffa0; line-height: 1.7; }
+    .service-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; margin-top: 10px; }
+    .service-item { background: rgba(0,255,0,0.07); border: 1px solid rgba(0,255,0,0.2); border-radius: 10px; padding: 18px; text-align: center; cursor: pointer; transition: all 0.3s; }
+    .service-item:hover { background: rgba(0,255,0,0.15); transform: translateY(-4px); }
+    .service-item .icon { font-size: 2rem; margin-bottom: 8px; }
+    .service-item .name { font-size: 0.85rem; font-weight: 600; color: #00ff88; }
+    .service-item .price { font-size: 0.8rem; color: #80ffb0; margin-top: 4px; }
+    select, input, textarea { width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid rgba(0,255,0,0.3); background: rgba(0,20,0,0.6); color: #a0ffa0; font-family: 'Poppins', sans-serif; margin-bottom: 14px; }
+    select option { color: #111; background: #fff; }
+    button { background: linear-gradient(135deg, #006600, #00aa00); color: #fff; border: none; padding: 11px 26px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s; font-family: 'Share Tech Mono', monospace; }
+    button:hover { transform: scale(1.05); box-shadow: 0 0 12px rgba(0,255,0,0.4); }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <h2>💻 CYBER CAFE</h2>
+    <a onclick="showTab('home')">🏠 Home</a>
+    <a onclick="showTab('choose-provider')">🤝 Choose Provider</a>
+    <a onclick="showTab('book-pc')">💻 Book a PC</a>
+    <a onclick="showTab('print')">🖨️ Print / Scan</a>
+    <a onclick="showTab('sessions')">⏱️ My Sessions</a>
+    <a onclick="showTab('topup')">💳 Top Up</a>
+    <a onclick="showTab('support')">🛠️ Support</a>
+    <a onclick="logout()">🚪 Logout</a>
+  </div>
+
+  <div class="content">
+    <div id="home" class="tab-content active">
+      <h1>WELCOME BACK</h1>
+      <p>Book a computer session, print documents, or top up your account balance.</p>
+      <div class="service-grid" style="margin-top:30px;">
+        <div class="service-item" onclick="showTab('book-pc')"><div class="icon">💻</div><div class="name">Book PC</div><div class="price">KSh 30/hr</div></div>
+        <div class="service-item" onclick="showTab('print')"><div class="icon">🖨️</div><div class="name">Print</div><div class="price">KSh 10/page</div></div>
+        <div class="service-item" onclick="showTab('topup')"><div class="icon">💳</div><div class="name">Top Up</div></div>
+        <div class="service-item" onclick="showTab('sessions')"><div class="icon">⏱️</div><div class="name">Sessions</div></div>
+      </div>
+    </div>
+
+    <div id="choose-provider" class="tab-content">
+  <h2>Choose Your Provider</h2>
+  <p style="margin-bottom:20px;">Select a provider below. They will be able to see and serve you.</p>
+  <div id="provider-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-top:10px;"></div>
+  <div id="provider-status" style="margin-top:16px;font-size:0.95rem;"></div>
+</div>
+
+    <div id="book-pc" class="tab-content">
+      <h2>BOOK A PC SESSION</h2>
+      <div class="card">
+        <label>Select PC</label>
+        <select><option>PC 01</option><option>PC 02</option><option>PC 03</option><option>PC 04</option><option>PC 05</option></select>
+        <label>Duration</label>
+        <select><option>30 minutes — KSh 15</option><option>1 hour — KSh 30</option><option>2 hours — KSh 55</option><option>3 hours — KSh 80</option></select>
+        <label>Start Time</label>
+        <input type="time">
+        <button>Book Session</button>
+      </div>
+    </div>
+
+    <div id="print" class="tab-content">
+      <h2>PRINT / SCAN</h2>
+      <div class="card">
+        <label>Service Type</label>
+        <select><option>Print (Black & White)</option><option>Print (Colour)</option><option>Scan to PDF</option><option>Photocopy</option><option>Lamination</option></select>
+        <label>Number of Pages / Copies</label>
+        <input type="number" min="1" value="1">
+        <label>Upload File (for printing)</label>
+        <input type="file" accept=".pdf,.doc,.docx,.jpg,.png">
+        <label>Special Instructions</label>
+        <textarea placeholder="e.g. A4 size, double-sided..."></textarea>
+        <button>Submit Request</button>
+      </div>
+    </div>
+
+    <div id="sessions" class="tab-content">
+      <h2>MY SESSIONS</h2>
+      <div class="card"><p>💻 <strong>PC 03</strong> — 11 May 2026, 2:00 PM — 1 hour — <span style="color:#80ffb0;">Completed</span></p></div>
+      <div class="card"><p>💻 <strong>PC 01</strong> — 10 May 2026, 10:00 AM — 2 hours — <span style="color:#80ffb0;">Completed</span></p></div>
+    </div>
+
+    <div id="topup" class="tab-content">
+      <h2>TOP UP ACCOUNT</h2>
+      <div class="card">
+        <p style="margin-bottom:16px;">Current Balance: <strong style="color:#00ff88;">KSh 45</strong></p>
+        <label>Top Up Amount (KSh)</label>
+        <select><option>50</option><option>100</option><option>200</option><option>500</option></select>
+        <label>Payment Method</label>
+        <select><option>M-Pesa</option><option>Cash</option></select>
+        <button>Top Up Now</button>
+      </div>
+    </div>
+
+    <div id="support" class="tab-content">
+      <h2>SUPPORT</h2>
+      <div class="card">
+        <label>Issue</label>
+        <select><option>PC Not Working</option><option>Slow Internet</option><option>Billing Issue</option><option>Other</option></select>
+        <label>Description</label>
+        <textarea placeholder="Describe your issue..."></textarea>
+        <button>Submit</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const BASE = 'http://localhost:5501';
+
+    // Auth guard — runs immediately on page load
+    (function() {
+      if (!localStorage.getItem('user')) {
+        window.location.replace('business-select.html');
+      }
+      history.replaceState(null, '', window.location.href);
+    })();
+
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const businessType = user.businessType || '';
+
+    function showTab(id) {
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      if (id === 'choose-provider') loadProviders();
+    }
+
+    function loadProviders() {
+      const list = document.getElementById('provider-list');
+      const status = document.getElementById('provider-status');
+      list.innerHTML = '<p style="color:#a0ffa0;">Loading providers...</p>';
+      status.innerHTML = '';
+      fetch(`${BASE}/available-providers?businessType=${encodeURIComponent(businessType)}`)
+        .then(r => r.json())
+        .then(providers => {
+          if (!providers.length) {
+            list.innerHTML = '<p style="color:#a0ffa0;">No providers available at the moment.</p>';
+            return;
+          }
+          list.innerHTML = providers.map(p => `
+            <div style="background:rgba(0,255,0,0.07);border:1px solid rgba(0,255,0,0.2);border-radius:10px;padding:18px;text-align:center;">
+              <div style="font-size:1.5rem;margin-bottom:8px;">🏪</div>
+              <div style="font-weight:600;margin-bottom:4px;color:#00ff88;">${p.name}</div>
+              <div style="font-size:0.8rem;color:#80ffb0;margin-bottom:12px;">${p.email || ''}</div>
+              <button onclick="selectProvider(${p.id}, '${(p.name||'').replace(/'/g,"\\'")}', this)">Select</button>
+            </div>
+          `).join('');
+        })
+        .catch(() => {
+          list.innerHTML = '<p style="color:#ffaaaa;">Failed to load providers. Please try again.</p>';
+        });
+    }
+
+    function selectProvider(providerId, providerName, btn) {
+      btn.disabled = true;
+      btn.textContent = 'Selecting...';
+      fetch(`${BASE}/select-provider`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customerId: user.id, providerId })
+      })
+        .then(r => r.json())
+        .then(() => {
+          document.getElementById('provider-status').innerHTML =
+            `<span style="color:#80ffb0;">✅ You have selected <strong>${providerName}</strong> as your provider.</span>`;
+          btn.textContent = '✅ Selected';
+        })
+        .catch(() => {
+          document.getElementById('provider-status').innerHTML =
+            '<span style="color:#ffaaaa;">❌ Failed to select provider. Please try again.</span>';
+          btn.disabled = false;
+          btn.textContent = 'Select';
+        });
+    }
+
+    function logout() {
+      localStorage.removeItem('user');
+      localStorage.removeItem('businessType');
+      window.location.replace('business-select.html');
+    }
+  </script>
+  <script src="lang.js"></script>
+</body>
+</html>

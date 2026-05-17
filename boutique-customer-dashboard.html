@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Boutique - Customer Dashboard</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=Playfair+Display:wght@700&display=swap');
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Poppins', sans-serif; display: flex; height: 100vh; background: linear-gradient(rgba(0,0,0,0.55),rgba(0,0,0,0.55)), url('https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?w=1400') no-repeat center/cover fixed; color: #f0f0f0; }
+    .sidebar { width: 260px; background: rgba(60,20,80,0.93); backdrop-filter: blur(8px); height: 100vh; padding: 30px 20px; position: fixed; display: flex; flex-direction: column; box-shadow: 4px 0 20px rgba(0,0,0,0.4); overflow-y: auto; }
+    .sidebar h2 { font-family: 'Playfair Display', serif; font-size: 1.3rem; color: #f0d0ff; text-align: center; margin-bottom: 30px; }
+    .sidebar a { display: block; color: #fff; text-decoration: none; padding: 12px 16px; margin: 6px 0; border-radius: 8px; font-weight: 500; cursor: pointer; transition: all 0.3s; }
+    .sidebar a:hover, .sidebar a.active { background: rgba(255,255,255,0.2); transform: translateX(6px); }
+    .content { margin-left: 260px; flex: 1; padding: 40px; overflow-y: auto; }
+    .tab-content { display: none; animation: fadeIn 0.5s ease; }
+    .tab-content.active { display: block; }
+    .card { background: rgba(255,255,255,0.1); backdrop-filter: blur(6px); border-radius: 12px; padding: 24px; margin-bottom: 20px; }
+    h1 { font-family: 'Playfair Display', serif; font-size: 2rem; margin-bottom: 8px; color: #f0d0ff; }
+    h2 { font-family: 'Playfair Display', serif; color: #f0d0ff; margin-bottom: 16px; }
+    p { color: #ddd; line-height: 1.7; }
+    select, input, textarea { width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.15); color: #fff; font-family: 'Poppins', sans-serif; margin-bottom: 14px; }
+    select option { color: #111; }
+    button { background: linear-gradient(135deg, #7b2d8b, #a855c8); color: #fff; border: none; padding: 11px 26px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s; }
+    button:hover { transform: scale(1.05); opacity: 0.9; }
+    .item-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 14px; margin-top: 10px; }
+    .item-card { background: rgba(255,255,255,0.12); border-radius: 10px; padding: 18px; text-align: center; cursor: pointer; transition: all 0.3s; }
+    .item-card:hover { background: rgba(255,255,255,0.22); transform: translateY(-4px); }
+    .item-card .icon { font-size: 2rem; margin-bottom: 8px; }
+    .item-card .name { font-size: 0.85rem; font-weight: 600; }
+    .item-card .price { font-size: 0.8rem; color: #d4a0ff; margin-top: 4px; }
+    .ai-chip { padding:7px 14px; background:rgba(168,85,200,0.15); border:1px solid rgba(168,85,200,0.4); border-radius:20px; font-size:0.78rem; color:#d4a0ff; cursor:pointer; transition:all 0.2s ease; display:inline-block; }
+    .ai-chip:hover { background:rgba(168,85,200,0.3); }
+    .thinking-dots::after { content:'...'; animation:pulse 1.2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <h2>👗 Boutique Customer</h2>
+    <a onclick="showTab('home')" class="active">🏠 Home</a>
+    <a onclick="showTab('choose-provider')">🤝 Choose Provider</a>
+    <a onclick="showTab('collections')">👗 Collections</a>
+    <a onclick="showTab('shop')">🛍️ Shop Now</a>
+    <a onclick="showTab('orders')">📦 My Orders</a>
+    <a onclick="showTab('wishlist')">❤️ Wishlist</a>
+    <a onclick="showTab('fitting')">📏 Book Fitting</a>
+    <a onclick="showTab('reviews')">⭐ Leave a Review</a>
+    <a onclick="showTab('ai-assistant')">🤖 AI Assistant</a>
+    <a onclick="showTab('delivery')">🚚 Delivery</a>
+    <a onclick="logout()">🚪 Logout</a>
+  </div>
+
+  <div class="content">
+
+    <div id="home" class="tab-content active">
+      <h1>Welcome to the Boutique</h1>
+      <p>Explore our latest collections, shop your favourite pieces, and book a personal fitting session.</p>
+      <div class="item-grid" style="margin-top:30px;">
+        <div class="item-card" onclick="showTab('choose-provider')"><div class="icon">🤝</div><div class="name">Choose Provider</div></div>
+        <div class="item-card" onclick="showTab('collections')"><div class="icon">👗</div><div class="name">Collections</div></div>
+        <div class="item-card" onclick="showTab('shop')"><div class="icon">🛍️</div><div class="name">Shop</div></div>
+        <div class="item-card" onclick="showTab('fitting')"><div class="icon">📏</div><div class="name">Book Fitting</div></div>
+        <div class="item-card" onclick="showTab('orders')"><div class="icon">📦</div><div class="name">My Orders</div></div>
+        <div class="item-card" onclick="showTab('wishlist')"><div class="icon">❤️</div><div class="name">Wishlist</div></div>
+        <div class="item-card" onclick="showTab('ai-assistant')"><div class="icon">🤖</div><div class="name">AI Assistant</div></div>
+        <div class="item-card" onclick="showTab('delivery')"><div class="icon">🚚</div><div class="name">Delivery</div></div>
+      </div>
+    </div>
+
+    <div id="choose-provider" class="tab-content">
+      <h2>Choose Your Provider</h2>
+      <p style="margin-bottom:20px;">Select a boutique provider below. They will be able to see and serve you.</p>
+      <div id="provider-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-top:10px;"></div>
+      <div id="provider-status" style="margin-top:16px;font-size:0.95rem;"></div>
+    </div>
+
+    <div id="collections" class="tab-content">
+      <h2>Latest Collections</h2>
+      <div class="item-grid">
+        <div class="item-card"><div class="icon">👗</div><div class="name">Summer Dresses</div><div class="price">From KSh 2,500</div></div>
+        <div class="item-card"><div class="icon">👔</div><div class="name">Men's Shirts</div><div class="price">From KSh 1,800</div></div>
+        <div class="item-card"><div class="icon">👖</div><div class="name">Trousers</div><div class="price">From KSh 2,000</div></div>
+        <div class="item-card"><div class="icon">🧥</div><div class="name">Jackets</div><div class="price">From KSh 4,500</div></div>
+        <div class="item-card"><div class="icon">👠</div><div class="name">Heels</div><div class="price">From KSh 3,000</div></div>
+        <div class="item-card"><div class="icon">👜</div><div class="name">Handbags</div><div class="price">From KSh 2,200</div></div>
+      </div>
+    </div>
+
+    <div id="shop" class="tab-content">
+      <h2>Shop Now</h2>
+      <div class="card">
+        <label>Category</label>
+        <select><option>Dresses</option><option>Shirts</option><option>Trousers</option><option>Jackets</option><option>Accessories</option></select>
+        <label>Size</label>
+        <select><option>XS</option><option>S</option><option>M</option><option>L</option><option>XL</option><option>XXL</option></select>
+        <label>Colour Preference</label>
+        <input type="text" placeholder="e.g. Navy Blue, Floral Print">
+        <label>Budget (KSh)</label>
+        <input type="number" placeholder="e.g. 3000">
+        <button>Find Items</button>
+      </div>
+    </div>
+
+    <div id="orders" class="tab-content">
+      <h2>My Orders</h2>
+      <div id="orders-list"><p>Loading orders...</p></div>
+    </div>
+
+    <div id="wishlist" class="tab-content">
+      <h2>My Wishlist</h2>
+      <div id="wishlist-list"><p>Loading wishlist...</p></div>
+      <div class="card" style="margin-top:20px;">
+        <h2 style="font-size:1rem;margin-bottom:10px;">Add to Wishlist</h2>
+        <label>Item Name</label>
+        <input type="text" id="wish-name" placeholder="e.g. Floral Maxi Dress">
+        <label>Price (KSh)</label>
+        <input type="number" id="wish-price" placeholder="e.g. 3200">
+        <button onclick="addWishlist()">Add Item</button>
+        <p id="wish-msg" style="margin-top:8px;font-size:0.85rem;"></p>
+      </div>
+    </div>
+
+    <div id="fitting" class="tab-content">
+      <h2>Book a Fitting Session</h2>
+      <div class="card">
+        <label>Preferred Date</label><input type="date" id="fit-date">
+        <label>Preferred Time</label><input type="time" id="fit-time">
+        <label>Items to Try</label><textarea id="fit-items" placeholder="Describe what you'd like to try on..."></textarea>
+        <button onclick="bookFitting()">Book Fitting</button>
+        <p id="fit-msg" style="margin-top:8px;font-size:0.85rem;"></p>
+      </div>
+      <div id="fittings-list" style="margin-top:20px;"></div>
+    </div>
+
+    <div id="reviews" class="tab-content">
+      <h2>Leave a Review</h2>
+      <div class="card">
+        <label>Rating</label>
+        <select id="rev-rating">
+          <option value="5">⭐⭐⭐⭐⭐ Excellent</option>
+          <option value="4">⭐⭐⭐⭐ Good</option>
+          <option value="3">⭐⭐⭐ Average</option>
+          <option value="2">⭐⭐ Poor</option>
+          <option value="1">⭐ Very Poor</option>
+        </select>
+        <label>Your Review</label>
+        <textarea id="rev-text" placeholder="Share your shopping experience..."></textarea>
+        <button onclick="submitReview()">Submit Review</button>
+        <p id="rev-msg" style="margin-top:8px;font-size:0.85rem;"></p>
+      </div>
+    </div>
+
+    <!-- AI Assistant -->
+    <div id="ai-assistant" class="tab-content">
+      <h2>🤖 Fashion AI Assistant</h2>
+      <div class="card">
+
+        <!-- Info banner -->
+        <div style="display:flex;align-items:center;gap:14px;background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.25);border-radius:14px;padding:16px 20px;margin-bottom:24px;">
+          <span style="font-size:2rem;">💬</span>
+          <div>
+            <p style="color:#4ade80;font-weight:600;font-size:0.92rem;margin-bottom:2px;">ChatGPT opens in a new tab</p>
+            <p style="color:rgba(255,255,255,0.5);font-size:0.82rem;">Type your question below, click the button, and ChatGPT will open with your question pre-filled and ready to answer.</p>
+          </div>
+        </div>
+
+        <!-- Quick-fill chips -->
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;">
+          <span class="ai-chip" onclick="setAIQuestion('What fabric is best for a formal evening dress?')">👗 Best fabric for evening dress</span>
+          <span class="ai-chip" onclick="setAIQuestion('How do I take accurate body measurements at home?')">📏 How to measure at home</span>
+          <span class="ai-chip" onclick="setAIQuestion('What are the trending African print styles this season?')">🌍 Trending African prints</span>
+          <span class="ai-chip" onclick="setAIQuestion('How much fabric do I need for a trouser?')">🧶 Fabric quantity for trousers</span>
+        </div>
+
+        <textarea id="aiQuestion" rows="4" placeholder="Type your fashion question here — fabrics, styles, measurements, trends…" style="width:100%;padding:12px;border-radius:8px;border:1px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.15);color:#fff;font-family:'Poppins',sans-serif;margin-bottom:14px;"></textarea>
+
+        <button onclick="openChatGPT()" style="display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:12px;background:linear-gradient(135deg,#7b2d8b,#a855c8);color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer;font-size:0.95rem;">
+          <span style="font-size:1.2rem;">💬</span> <span data-i18n="c.ai.btn">Ask ChatGPT</span>
+        </button>
+        <p style="margin-top:12px;font-size:0.8rem;color:rgba(255,255,255,0.35);text-align:center;">
+          ChatGPT will open in a new tab. You may need a free ChatGPT account.
+        </p>
+      </div>
+    </div>
+
+    <!-- Delivery -->
+    <div id="delivery" class="tab-content">
+      <h2>🚚 Delivery Preference</h2>
+      <div class="card">
+        <p style="color:#ddd;margin-bottom:16px;">Choose how you want to receive your order.</p>
+
+        <div style="display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap;">
+          <div class="payment-method-card" id="pickupCard" onclick="selectDeliveryType('pickup')" style="flex:1;min-width:140px;padding:16px;background:rgba(255,255,255,0.05);border:2px solid rgba(255,255,255,0.1);border-radius:12px;text-align:center;cursor:pointer;transition:all 0.25s;">
+            <span style="font-size:1.8rem;display:block;margin-bottom:6px;">🏪</span>
+            <strong>Pick Up</strong>
+            <p style="font-size:0.75rem;margin-top:4px;color:rgba(255,255,255,0.5);">Collect from the shop</p>
+          </div>
+          <div class="payment-method-card" id="deliveryCard" onclick="selectDeliveryType('delivery')" style="flex:1;min-width:140px;padding:16px;background:rgba(255,255,255,0.05);border:2px solid rgba(255,255,255,0.1);border-radius:12px;text-align:center;cursor:pointer;transition:all 0.25s;">
+            <span style="font-size:1.8rem;display:block;margin-bottom:6px;">🚚</span>
+            <strong>Home Delivery</strong>
+            <p style="font-size:0.75rem;margin-top:4px;color:rgba(255,255,255,0.5);">Delivered to your door</p>
+          </div>
+        </div>
+
+        <input type="hidden" id="selectedDeliveryType" value="">
+
+        <div id="deliveryAddressSection" style="display:none;">
+          <label>📍 Delivery Address</label>
+          <input type="text" id="deliveryAddress" placeholder="e.g. 14 Moi Avenue, Nairobi CBD">
+          <label>🗺️ Location Notes / Landmark</label>
+          <input type="text" id="locationNotes" placeholder="e.g. Near KCB Bank, Blue gate, 2nd floor">
+        </div>
+
+        <div id="pickupNoteSection" style="display:none;">
+          <div style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:12px;padding:16px 20px;margin-bottom:16px;">
+            <p style="color:#d4a0ff;font-size:0.9rem;">
+              🏪 <strong>Pick-up Instructions</strong><br>
+              <span style="color:rgba(255,255,255,0.7);font-size:0.85rem;">
+                Your order will be ready for collection at the shop. The provider will notify you when it's ready.
+              </span>
+            </p>
+          </div>
+        </div>
+
+        <button onclick="submitDeliveryPreference()">💾 Save Preference</button>
+        <p id="deliveryMessage" style="margin-top:14px;font-size:0.88rem;"></p>
+
+        <div id="currentDeliveryPref" style="display:none;margin-top:20px;">
+          <hr style="border:none;height:1px;background:rgba(255,255,255,0.1);margin:20px 0;">
+          <h3 style="color:#d4a0ff;font-size:0.95rem;margin-bottom:10px;">✅ Current Saved Preference</h3>
+          <div id="currentDeliveryDetails" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:14px 18px;font-size:0.88rem;color:rgba(255,255,255,0.8);"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const BASE = 'http://localhost:5501';
+
+    (function() {
+      if (!localStorage.getItem('user')) window.location.replace('business-select.html');
+      history.replaceState(null, '', window.location.href);
+    })();
+
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const businessType = user.businessType || 'boutique';
+
+    function showTab(id) {
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.sidebar a').forEach(a => a.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      if (id === 'choose-provider') loadProviders();
+      if (id === 'orders') loadOrders();
+      if (id === 'wishlist') loadWishlist();
+      if (id === 'fitting') loadFittings();
+      if (id === 'delivery') loadCurrentDeliveryPref();
+    }
+
+    // AI chip quick-fill
+    function setAIQuestion(text) {
+      document.getElementById('aiQuestion').value = text;
+      document.getElementById('aiQuestion').focus();
+    }
+
+    // AI Assistant — opens ChatGPT in a new tab with the question pre-filled
+    function openChatGPT() {
+      const question = document.getElementById('aiQuestion').value.trim();
+      const context  = 'You are an expert fashion consultant and master tailor. Please help me with the following question: ';
+      const prompt   = question
+        ? context + question
+        : 'You are an expert fashion consultant and master tailor. I have a question about fashion, fabrics, measurements or styles.';
+      const url = 'https://chatgpt.com/?q=' + encodeURIComponent(prompt);
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+
+    function formatAIReply(text) {
+      return text
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.+?)\*/g, '<em>$1</em>')
+        .replace(/^#{1,3}\s+(.+)$/gm, '<strong style="color:#d4a0ff;font-size:1rem;">$1</strong>')
+        .replace(/^[-•]\s+(.+)$/gm, '&nbsp;&nbsp;• $1')
+        .replace(/\n{2,}/g, '<br><br>')
+        .replace(/\n/g, '<br>');
+    }
+
+    // Delivery type selection
+    function selectDeliveryType(type) {
+      document.getElementById('selectedDeliveryType').value = type;
+      document.getElementById('pickupCard').style.borderColor = type === 'pickup' ? '#a855c8' : 'rgba(255,255,255,0.1)';
+      document.getElementById('pickupCard').style.background = type === 'pickup' ? 'rgba(168,85,200,0.1)' : 'rgba(255,255,255,0.05)';
+      document.getElementById('deliveryCard').style.borderColor = type === 'delivery' ? '#a855c8' : 'rgba(255,255,255,0.1)';
+      document.getElementById('deliveryCard').style.background = type === 'delivery' ? 'rgba(168,85,200,0.1)' : 'rgba(255,255,255,0.05)';
+      document.getElementById('deliveryAddressSection').style.display = type === 'delivery' ? 'block' : 'none';
+      document.getElementById('pickupNoteSection').style.display = type === 'pickup' ? 'block' : 'none';
+    }
+
+    // Submit delivery preference
+    async function submitDeliveryPreference() {
+      const deliveryType = document.getElementById('selectedDeliveryType').value;
+      const msg = document.getElementById('deliveryMessage');
+      if (!deliveryType) {
+        msg.style.color = '#ffaaaa';
+        msg.textContent = '❌ Please select a delivery option first.';
+        return;
+      }
+      const providerId = localStorage.getItem('selectedProviderId');
+      if (!providerId) {
+        msg.style.color = '#ffaaaa';
+        msg.textContent = '❌ Please choose a provider first (Choose Provider tab).';
+        return;
+      }
+      const address = document.getElementById('deliveryAddress')?.value.trim() || '';
+      const locationNotes = document.getElementById('locationNotes')?.value.trim() || '';
+      if (deliveryType === 'delivery' && !address) {
+        msg.style.color = '#ffaaaa';
+        msg.textContent = '❌ Please enter your delivery address.';
+        return;
+      }
+      msg.style.color = 'rgba(212,168,67,0.8)';
+      msg.textContent = 'Saving…';
+      try {
+        const res = await fetch(`${BASE}/delivery-preference`, {
+          method: 'POST', headers: {'Content-Type':'application/json'}, credentials: 'include',
+          body: JSON.stringify({
+            customerId: user.id, designerId: providerId, deliveryType, address, locationNotes
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          msg.style.color = '#b3ffb3';
+          msg.textContent = '✅ Delivery preference saved successfully!';
+          loadCurrentDeliveryPref();
+        } else {
+          msg.style.color = '#ffaaaa';
+          msg.textContent = '❌ ' + (data.message || 'Failed to save.');
+        }
+      } catch (err) {
+        console.error(err);
+        msg.style.color = '#ffaaaa';
+        msg.textContent = '❌ Error connecting to server.';
+      }
+    }
+
+    // Load existing delivery preference
+    async function loadCurrentDeliveryPref() {
+      const providerId = localStorage.getItem('selectedProviderId');
+      if (!user.id || !providerId) return;
+      try {
+        const res = await fetch(`${BASE}/delivery-preference/${user.id}/${providerId}`, { credentials: 'include' });
+        const data = await res.json();
+        const box = document.getElementById('currentDeliveryPref');
+        const det = document.getElementById('currentDeliveryDetails');
+        if (data.success && data.preference) {
+          const p = data.preference;
+          const typeLabel = p.delivery_type === 'pickup' ? '🏪 Pick Up' : '🚚 Home Delivery';
+          det.innerHTML = `
+            <p><strong>Option:</strong> ${typeLabel}</p>
+            ${p.address ? `<p><strong>Address:</strong> ${p.address}</p>` : ''}
+            ${p.location_notes ? `<p><strong>Notes:</strong> ${p.location_notes}</p>` : ''}
+            <p style="color:rgba(255,255,255,0.4);font-size:0.78rem;margin-top:6px;">Last updated: ${new Date(p.updated_at).toLocaleString()}</p>
+          `;
+          box.style.display = 'block';
+          selectDeliveryType(p.delivery_type);
+          if (p.address) document.getElementById('deliveryAddress').value = p.address;
+          if (p.location_notes) document.getElementById('locationNotes').value = p.location_notes;
+        } else {
+          box.style.display = 'none';
+        }
+      } catch (e) { console.error('Error loading delivery pref:', e); }
+    }
+
+    // ── Choose Provider ──────────────────────────────────────────────────────
+    function loadProviders() {
+      const list = document.getElementById('provider-list');
+      list.innerHTML = '<p style="color:#ddd;">Loading providers...</p>';
+      fetch(`${BASE}/available-providers?businessType=${encodeURIComponent(businessType)}`)
+        .then(r => r.json())
+        .then(data => {
+          const providers = data.providers || [];
+          if (!providers.length) {
+            list.innerHTML = '<p style="color:#ddd;">No providers registered yet.</p>';
+            return;
+          }
+          list.innerHTML = providers.map(p => `
+            <div style="background:rgba(255,255,255,0.12);border-radius:10px;padding:18px;text-align:center;">
+              <div style="font-size:1.8rem;margin-bottom:8px;">&#128247;</div>
+              <div style="font-weight:600;margin-bottom:4px;">${p.name}</div>
+              <div style="font-size:0.8rem;color:#ddd;margin-bottom:12px;">${p.email || ''}</div>
+              <button onclick="selectProvider(${p.id},'${(p.name||'').replace(/'/g,'&#39;')}',this)">Select</button>
+            </div>`).join('');
+        })
+        .catch(() => { list.innerHTML = '<p style="color:#ffaaaa;">Failed to load providers.</p>'; });
+    }
+
+    function selectProvider(providerId, providerName, btn) {
+      btn.disabled = true; btn.textContent = 'Selecting...';
+      fetch(`${BASE}/select-provider`, {
+        method: 'POST', headers: {'Content-Type':'application/json'}, credentials: 'include',
+        body: JSON.stringify({ customerId: user.id, providerId })
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          localStorage.setItem('selectedProviderId', providerId);
+          localStorage.setItem('selectedProviderName', providerName);
+          document.getElementById('provider-status').innerHTML =
+            `<span style="color:#b3ffb3;">&#10003; Connected to <strong>${providerName}</strong>. They can now see you in their queue.</span>`;
+          btn.textContent = '&#10003; Selected'; btn.style.background = '#28a745';
+        } else {
+          document.getElementById('provider-status').innerHTML = `<span style="color:#ffaaaa;">&#10007; ${data.message}</span>`;
+          btn.disabled = false; btn.textContent = 'Select';
+        }
+      })
+      .catch(() => {
+        document.getElementById('provider-status').innerHTML = '<span style="color:#ffaaaa;">&#10007; Server error.</span>';
+        btn.disabled = false; btn.textContent = 'Select';
+      });
+    }
+
+    // ── Orders ───────────────────────────────────────────────────────────────
+    function loadOrders() {
+      const el = document.getElementById('orders-list');
+      el.innerHTML = '<p>Loading...</p>';
+      fetch(`${BASE}/boutique/orders/customer/${user.id}`, { credentials: 'include' })
+        .then(r => r.json())
+        .then(data => {
+          const orders = data.orders || [];
+          if (!orders.length) { el.innerHTML = '<p>No orders yet.</p>'; return; }
+          el.innerHTML = `<div class="card"><table>
+            <tr><th>Item</th><th>Size</th><th>Qty</th><th>Total</th><th>Status</th><th>Date</th></tr>
+            ${orders.map(o => `<tr>
+              <td>${o.item_name || '-'}</td>
+              <td>${o.size || '-'}</td>
+              <td>${o.quantity}</td>
+              <td>KSh ${Number(o.total_price||0).toLocaleString()}</td>
+              <td><span style="color:${o.status==='delivered'?'#b3ffb3':o.status==='cancelled'?'#ffb3b3':'#ffd700'}">${o.status}</span></td>
+              <td>${new Date(o.created_at).toLocaleDateString()}</td>
+            </tr>`).join('')}
+          </table></div>`;
+        })
+        .catch(() => { el.innerHTML = '<p style="color:#ffaaaa;">Failed to load orders.</p>'; });
+    }
+
+    // ── Wishlist ─────────────────────────────────────────────────────────────
+    function loadWishlist() {
+      const el = document.getElementById('wishlist-list');
+      el.innerHTML = '<p>Loading...</p>';
+      fetch(`${BASE}/boutique/wishlist/${user.id}`, { credentials: 'include' })
+        .then(r => r.json())
+        .then(data => {
+          const items = data.wishlist || [];
+          if (!items.length) { el.innerHTML = '<p>Your wishlist is empty.</p>'; return; }
+          el.innerHTML = items.map(i => `
+            <div class="card" style="display:flex;justify-content:space-between;align-items:center;">
+              <div><strong>${i.item_name}</strong> &mdash; KSh ${Number(i.price||0).toLocaleString()}</div>
+              <button onclick="removeWishlist(${i.id},this)" style="padding:6px 14px;font-size:0.8rem;background:linear-gradient(135deg,#c0392b,#e74c3c);">Remove</button>
+            </div>`).join('');
+        })
+        .catch(() => { el.innerHTML = '<p style="color:#ffaaaa;">Failed to load wishlist.</p>'; });
+    }
+
+    function addWishlist() {
+      const name = document.getElementById('wish-name').value.trim();
+      const price = document.getElementById('wish-price').value.trim();
+      const msg = document.getElementById('wish-msg');
+      if (!name) { msg.style.color='#ffaaaa'; msg.textContent='Please enter an item name.'; return; }
+      fetch(`${BASE}/boutique/wishlist`, {
+        method: 'POST', headers: {'Content-Type':'application/json'}, credentials: 'include',
+        body: JSON.stringify({ customerId: user.id, itemName: name, price: price || 0 })
+      })
+      .then(r => r.json())
+      .then(data => {
+        msg.style.color = data.success ? '#b3ffb3' : '#ffaaaa';
+        msg.textContent = data.success ? '&#10003; Added to wishlist.' : data.message;
+        if (data.success) { document.getElementById('wish-name').value=''; document.getElementById('wish-price').value=''; loadWishlist(); }
+      })
+      .catch(() => { msg.style.color='#ffaaaa'; msg.textContent='Server error.'; });
+    }
+
+    function removeWishlist(id, btn) {
+      btn.disabled = true;
+      fetch(`${BASE}/boutique/wishlist/${id}`, { method: 'DELETE', credentials: 'include' })
+        .then(r => r.json())
+        .then(() => loadWishlist())
+        .catch(() => { btn.disabled = false; });
+    }
+
+    // ── Fittings ─────────────────────────────────────────────────────────────
+    function loadFittings() {
+      const el = document.getElementById('fittings-list');
+      el.innerHTML = '';
+      fetch(`${BASE}/boutique/fittings/customer/${user.id}`, { credentials: 'include' })
+        .then(r => r.json())
+        .then(data => {
+          const fittings = data.fittings || [];
+          if (!fittings.length) return;
+          el.innerHTML = '<h2 style="font-size:1rem;margin-bottom:10px;">My Fitting Bookings</h2>' +
+            fittings.map(f => `
+              <div class="card">
+                <strong>${f.fitting_date} at ${f.fitting_time}</strong><br>
+                <span style="color:#ddd;font-size:0.85rem;">${f.items || ''}</span><br>
+                <span style="color:${f.status==='confirmed'?'#b3ffb3':'#ffd700'};font-size:0.85rem;">${f.status}</span>
+                ${f.provider_name ? '<span style="color:#ccc;font-size:0.8rem;"> &mdash; Provider: '+f.provider_name+'</span>' : ''}
+              </div>`).join('');
+        })
+        .catch(() => {});
+    }
+
+    function bookFitting() {
+      const providerId = localStorage.getItem('selectedProviderId');
+      const msg = document.getElementById('fit-msg');
+      if (!providerId) { msg.style.color='#ffd700'; msg.textContent='Please choose a provider first.'; return; }
+      const date = document.getElementById('fit-date').value;
+      const time = document.getElementById('fit-time').value;
+      const items = document.getElementById('fit-items').value.trim();
+      if (!date || !time) { msg.style.color='#ffaaaa'; msg.textContent='Please select date and time.'; return; }
+      fetch(`${BASE}/boutique/fittings`, {
+        method: 'POST', headers: {'Content-Type':'application/json'}, credentials: 'include',
+        body: JSON.stringify({ customerId: user.id, providerId, fittingDate: date, fittingTime: time, items })
+      })
+      .then(r => r.json())
+      .then(data => {
+        msg.style.color = data.success ? '#b3ffb3' : '#ffaaaa';
+        msg.textContent = data.success ? '&#10003; Fitting booked successfully.' : data.message;
+        if (data.success) loadFittings();
+      })
+      .catch(() => { msg.style.color='#ffaaaa'; msg.textContent='Server error.'; });
+    }
+
+    // ── Reviews ──────────────────────────────────────────────────────────────
+    function submitReview() {
+      const providerId = localStorage.getItem('selectedProviderId');
+      const msg = document.getElementById('rev-msg');
+      if (!providerId) { msg.style.color='#ffd700'; msg.textContent='Please choose a provider first.'; return; }
+      const rating = document.getElementById('rev-rating').value;
+      const review = document.getElementById('rev-text').value.trim();
+      if (!review) { msg.style.color='#ffaaaa'; msg.textContent='Please write a review.'; return; }
+      fetch(`${BASE}/boutique/reviews`, {
+        method: 'POST', headers: {'Content-Type':'application/json'}, credentials: 'include',
+        body: JSON.stringify({ customerId: user.id, providerId, rating, review })
+      })
+      .then(r => r.json())
+      .then(data => {
+        msg.style.color = data.success ? '#b3ffb3' : '#ffaaaa';
+        msg.textContent = data.success ? '&#10003; Review submitted. Thank you.' : data.message;
+        if (data.success) document.getElementById('rev-text').value = '';
+      })
+      .catch(() => { msg.style.color='#ffaaaa'; msg.textContent='Server error.'; });
+    }
+
+    function logout() {
+      localStorage.removeItem('user');
+      localStorage.removeItem('businessType');
+      localStorage.removeItem('selectedProviderId');
+      localStorage.removeItem('selectedProviderName');
+      window.location.replace('business-select.html');
+    }
+  </script>
+  <script src="lang.js"></script>
+</body>
+</html>
