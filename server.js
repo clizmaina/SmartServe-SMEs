@@ -1,3 +1,4 @@
+// Production build — SmartServe SMEs
 const cors = require("cors");
 const express = require("express");
 const mysql = require("mysql2");
