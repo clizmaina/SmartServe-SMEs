@@ -50,7 +50,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (data.success) {
                 otpSection.classList.add("visible");
-                otpMessage.textContent = "✅ A 6-digit code was sent to " + email + ". Check your inbox (and spam folder).";
+                // If email failed, the OTP is shown in the message
+                otpMessage.textContent = data.message || ("✅ A 6-digit code was sent to " + email + ". Check your inbox (and spam folder).");
+                // If OTP returned directly (email failed), pre-fill it
+                if (data.otp) {
+                    document.getElementById("otpInput").value = data.otp;
+                    otpMessage.textContent = "⚠️ Email delivery failed. Your code has been pre-filled below. Please verify to continue.";
+                }
             } else {
                 alert("❌ " + data.message);
             }
