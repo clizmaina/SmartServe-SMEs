@@ -228,9 +228,14 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-// ✅ Health Check
-app.get("/", (req, res) => {
+// ✅ Health Check (API only)
+app.get("/health", (req, res) => {
     res.json({ success: true, message: "Server is running!" });
+});
+
+// ✅ Root — serve the website homepage
+app.get("/", (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 // ✅ STEP 1 — Send OTP before signup completes
