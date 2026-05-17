@@ -11,7 +11,7 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "SmartServe SMEs — Multi-business service platform",
+  "description": "SmartServe SMEs platform - build 20260517-1037",
   "dependencies": {
     "axios": "^1.16.0",
     "bcrypt": "^5.1.1",
