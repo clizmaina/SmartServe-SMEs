@@ -259,27 +259,76 @@ db.query(`
   )
 `, (err) => { if (err) console.error("❌ provider_subscriptions table error:", err.message); });
 
-// ✅ Nodemailer transporter — explicit Gmail SMTP (port 587 STARTTLS)
-// Using explicit host/port instead of service:'gmail' for better reliability on cloud
-const emailPass = (process.env.EMAIL_PASS || '').replace(/\s/g, '');
-const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 587,
-    secure: false,          // STARTTLS (upgrades after connect)
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: emailPass
-    },
-    tls: {
-        rejectUnauthorized: false  // allow self-signed certs (needed on some hosts)
-    },
-    connectionTimeout: 15000,
-    greetingTimeout: 15000,
-    socketTimeout: 20000
-});
+// ✅ Email sending via Brevo HTTP API
+// Render's free tier BLOCKS all SMTP ports (25, 465, 587) — Gmail SMTP will never work.
+// Brevo sends via HTTPS (port 443) which is always open. Free plan = 300 emails/day.
+// Sign up at https://app.brevo.com → SMTP & API → API Keys → Create a new API key
+// Then set BREVO_API_KEY in Render environment variables.
 
-// Log email config on startup (without exposing the password)
-console.log(`📧 Email configured: ${process.env.EMAIL_USER || '(not set)'} | pass length: ${emailPass.length}`);
+const emailPass = (process.env.EMAIL_PASS || '').replace(/\s/g, '');
+
+async function sendEmail({ to, toName, subject, html }) {
+    const brevoKey = process.env.BREVO_API_KEY;
+
+    // ── Option A: Brevo HTTP API (works on Render free tier) ──────────────────
+    if (brevoKey) {
+        try {
+            const response = await axios.post(
+                'https://api.brevo.com/v3/smtp/email',
+                {
+                    sender: {
+                        name: 'SmartServe SMEs',
+                        email: process.env.EMAIL_USER || 'smartstitchtech01@gmail.com'
+                    },
+                    to: [{ email: to, name: toName || to }],
+                    subject,
+                    htmlContent: html
+                },
+                {
+                    headers: {
+                        'api-key': brevoKey,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    timeout: 15000
+                }
+            );
+            console.log(`✅ Email sent via Brevo to ${to} | messageId: ${response.data.messageId}`);
+            return { success: true };
+        } catch (err) {
+            const errMsg = err.response?.data?.message || err.message;
+            console.error('❌ Brevo API error:', errMsg);
+            throw new Error('Brevo: ' + errMsg);
+        }
+    }
+
+    // ── Option B: Gmail SMTP fallback (only works locally, not on Render free) ─
+    if (process.env.EMAIL_USER && emailPass) {
+        const nodemailer = require('nodemailer');
+        const transporter = nodemailer.createTransport({
+            host: 'smtp.gmail.com',
+            port: 587,
+            secure: false,
+            auth: { user: process.env.EMAIL_USER, pass: emailPass },
+            tls: { rejectUnauthorized: false },
+            connectionTimeout: 15000,
+            greetingTimeout: 15000,
+            socketTimeout: 20000
+        });
+        const info = await transporter.sendMail({
+            from: `"SmartServe SMEs" <${process.env.EMAIL_USER}>`,
+            to,
+            subject,
+            html
+        });
+        console.log(`✅ Email sent via Gmail SMTP to ${to}`);
+        return { success: true, messageId: info.messageId };
+    }
+
+    throw new Error('No email provider configured. Set BREVO_API_KEY in Render environment variables.');
+}
+
+console.log(`📧 Email provider: ${process.env.BREVO_API_KEY ? 'Brevo API ✅' : process.env.EMAIL_USER ? 'Gmail SMTP (local only)' : '⚠️ NOT CONFIGURED'}`);
 
 // ✅ In-memory OTP store: { "email|businessType": { otp, expiresAt, userData } }
 const otpStore = {};
@@ -303,24 +352,21 @@ app.get("/health", (req, res) => {
 
 // ✅ Email test endpoint — visit /test-email?to=youraddress@gmail.com on Render to verify
 app.get("/test-email", async (req, res) => {
-    const to = req.query.to || process.env.EMAIL_USER;
-    if (!process.env.EMAIL_USER || !emailPass) {
-        return res.json({ success: false, message: "❌ EMAIL_USER or EMAIL_PASS not set in environment." });
-    }
+    const to = req.query.to || process.env.EMAIL_USER || 'smartstitchtech01@gmail.com';
     try {
-        const info = await transporter.sendMail({
-            from: `"SmartServe SMEs" <${process.env.EMAIL_USER}>`,
+        await sendEmail({
             to,
-            subject: "SmartServe SMEs — Email Test",
+            toName: 'SmartServe Test',
+            subject: 'SmartServe SMEs — Email Test',
             html: `<h2 style="color:#006600;">✅ Email is working!</h2>
                    <p>Your SmartServe SMEs email system is configured correctly.</p>
                    <p>OTP verification emails will be delivered successfully.</p>
                    <p style="color:#888;font-size:0.8rem;">Sent at: ${new Date().toISOString()}</p>`
         });
-        res.json({ success: true, message: `✅ Test email sent to ${to}`, messageId: info.messageId });
+        res.json({ success: true, message: `✅ Test email sent to ${to}` });
     } catch (err) {
         console.error("❌ Test email error:", err.message);
-        res.json({ success: false, message: "❌ Email failed: " + err.message, code: err.code });
+        res.json({ success: false, message: "❌ Email failed: " + err.message });
     }
 });
 
@@ -364,9 +410,9 @@ app.post("/send-otp", async (req, res) => {
     otpStore[key] = { otp, expiresAt, userData: { name, email, password, role, businessType } };
 
     try {
-        await transporter.sendMail({
-            from: `"SmartServe SMEs" <${process.env.EMAIL_USER}>`,
+        await sendEmail({
             to: email,
+            toName: name,
             subject: "Your SmartServe SMEs Verification Code",
             html: `
                 <div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;padding:30px;border:1px solid #eee;border-radius:10px;">

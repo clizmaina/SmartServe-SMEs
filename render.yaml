@@ -25,6 +25,8 @@ services:
         generateValue: true
       - key: OPENROUTER_API_KEY
         sync: false
+      - key: BREVO_API_KEY
+        sync: false
       - key: EMAIL_USER
         sync: false
       - key: EMAIL_PASS
@@ -32,4 +34,4 @@ services:
       - key: FRONTEND_URL
         sync: false
 
-# redeploy trigger v2
+# redeploy trigger v3
