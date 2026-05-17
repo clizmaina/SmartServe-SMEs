@@ -116,7 +116,23 @@ db.getConnection((err, connection) => {
     }
 });
 
-// ✅ Run DB migrations — add is_verified + provider_id columns if missing
+// ✅ Run DB migrations — create tables if they don't exist, then alter
+// Create users table first (required by all other tables)
+db.query(`
+  CREATE TABLE IF NOT EXISTS users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(200) NOT NULL,
+    email VARCHAR(200) NOT NULL,
+    password VARCHAR(300) NOT NULL,
+    role VARCHAR(50) NOT NULL DEFAULT 'customer',
+    business_type VARCHAR(100),
+    is_verified TINYINT(1) NOT NULL DEFAULT 0,
+    provider_id INT NULL DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )
+`, (err) => { if (err) console.error("❌ users table error:", err.message); });
+
+// Add columns if missing (safe on existing tables)
 db.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_verified TINYINT(1) NOT NULL DEFAULT 0`, () => {});
 db.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS provider_id INT NULL DEFAULT NULL`, () => {});
 
@@ -134,9 +150,9 @@ db.query(`
     UNIQUE KEY unique_customer_designer (customer_id, designer_id)
   )
 `, (err) => { if (err) console.error("❌ delivery_preferences table error:", err.message); });
-// Allow same email across different business types (drop old unique on email if exists)
+// Allow same email across different business types
 db.query(`ALTER TABLE users DROP INDEX email`, () => {}); // silently fails if already dropped
-db.query(`ALTER TABLE users ADD UNIQUE KEY unique_email_business (email, business_type)`, () => {});
+db.query(`ALTER TABLE users ADD UNIQUE KEY IF NOT EXISTS unique_email_business (email, business_type)`, () => {});
 
 // ✅ Boutique tables
 db.query(`
