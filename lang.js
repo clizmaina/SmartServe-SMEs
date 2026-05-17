@@ -352,6 +352,8 @@ const translations = {
 
 function applyLang(lang) {
   const t = translations[lang] || translations.en;
+
+  // Handle data-i18n elements
   document.querySelectorAll('[data-i18n]').forEach(el => {
     const key = el.getAttribute('data-i18n');
     if (!t[key]) return;
@@ -362,6 +364,19 @@ function applyLang(lang) {
       el.textContent = t[key];
     }
   });
+
+  // Handle data-i18n-placeholder elements (inputs with separate placeholder keys)
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    const key = el.getAttribute('data-i18n-placeholder');
+    if (t[key]) el.placeholder = t[key];
+  });
+
+  // Handle select option data-i18n
+  document.querySelectorAll('option[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (t[key]) el.textContent = t[key];
+  });
+
   // Update html lang attribute
   document.documentElement.lang = lang === 'sw' ? 'sw' : 'en';
   // Sync all switchers on the page
@@ -1198,5 +1213,377 @@ function changeLanguage(lang) {
     if (_prev) _prev(lang);
     // Run currency swap after a short delay to catch dynamic content
     setTimeout(() => swapCurrency(lang), 100);
+  };
+})();
+
+/* ── Signin / Signup page translations ── */
+(function () {
+  const authKeys = {
+    en: {
+      /* Signin */
+      "signin.h":          "Welcome Back",
+      "signin.sub":        "Sign in to your SmartServe account",
+      "signin.email":      "Email Address",
+      "signin.email.ph":   "Enter your email",
+      "signin.password":   "Password",
+      "signin.pass.ph":    "Enter your password",
+      "signin.btn":        "Login",
+      "signin.noaccount":  "Don't have an account?",
+      "signin.signup":     " Sign Up",
+      "signin.back":       "← Back to business selection",
+
+      /* Signup */
+      "signup.h":           "Create Account",
+      "signup.sub":         "Join thousands of Kenyan businesses on SmartServe",
+      "signup.name":        "Full Name",
+      "signup.name.ph":     "Full Name",
+      "signup.email":       "Email Address",
+      "signup.email.ph":    "Email Address",
+      "signup.password":    "Password",
+      "signup.pass.ph":     "Password",
+      "signup.role":        "Sign up as:",
+      "signup.role.customer": "Customer",
+      "signup.role.provider": "Provider / Designer",
+      "signup.sendotp":     "Send Verification Code",
+      "signup.otp.label":   "Enter the 6-digit code sent to your email:",
+      "signup.verify":      "Verify & Create Account",
+      "signup.resend":      "Resend code",
+      "signup.hasaccount":  "Already have an account?",
+      "signup.login":       " Login",
+
+      /* Subscription page */
+      "sub.h":              "Activate Your Provider Account",
+      "sub.sub":            "Pay KSh 300 to activate your monthly subscription",
+      "sub.phone.lbl":      "M-Pesa Phone Number",
+      "sub.phone.ph":       "e.g. 0712345678",
+      "sub.pay.btn":        "Pay KSh 300 via M-Pesa",
+      "sub.manual.h":       "Already paid? Enter your M-Pesa reference:",
+      "sub.ref.ph":         "e.g. QGH7XXXXXX",
+      "sub.verify.btn":     "Verify Payment"
+    },
+    sw: {
+      /* Signin */
+      "signin.h":          "Karibu Tena",
+      "signin.sub":        "Ingia kwenye akaunti yako ya SmartServe",
+      "signin.email":      "Anwani ya Barua Pepe",
+      "signin.email.ph":   "Ingiza barua pepe yako",
+      "signin.password":   "Nenosiri",
+      "signin.pass.ph":    "Ingiza nenosiri lako",
+      "signin.btn":        "Ingia",
+      "signin.noaccount":  "Huna akaunti?",
+      "signin.signup":     " Jisajili",
+      "signin.back":       "← Rudi kuchagua biashara",
+
+      /* Signup */
+      "signup.h":           "Fungua Akaunti",
+      "signup.sub":         "Jiunge na maelfu ya biashara za Kenya kwenye SmartServe",
+      "signup.name":        "Jina Kamili",
+      "signup.name.ph":     "Jina Kamili",
+      "signup.email":       "Anwani ya Barua Pepe",
+      "signup.email.ph":    "Anwani ya Barua Pepe",
+      "signup.password":    "Nenosiri",
+      "signup.pass.ph":     "Nenosiri",
+      "signup.role":        "Jisajili kama:",
+      "signup.role.customer": "Mteja",
+      "signup.role.provider": "Mtoa Huduma / Mbuni",
+      "signup.sendotp":     "Tuma Nambari ya Uthibitisho",
+      "signup.otp.label":   "Ingiza nambari ya tarakimu 6 iliyotumwa kwa barua pepe yako:",
+      "signup.verify":      "Thibitisha & Fungua Akaunti",
+      "signup.resend":      "Tuma tena nambari",
+      "signup.hasaccount":  "Una akaunti tayari?",
+      "signup.login":       " Ingia",
+
+      /* Subscription page */
+      "sub.h":              "Amilisha Akaunti Yako ya Mtoa Huduma",
+      "sub.sub":            "Lipa Shilingi 300 kuamilisha usajili wako wa kila mwezi",
+      "sub.phone.lbl":      "Nambari ya Simu ya M-Pesa",
+      "sub.phone.ph":       "mfano 0712345678",
+      "sub.pay.btn":        "Lipa Shilingi 300 kwa M-Pesa",
+      "sub.manual.h":       "Umelipa tayari? Ingiza nambari yako ya M-Pesa:",
+      "sub.ref.ph":         "mfano QGH7XXXXXX",
+      "sub.verify.btn":     "Thibitisha Malipo"
+    }
+  };
+  if (typeof translations !== 'undefined') {
+    Object.keys(authKeys).forEach(lang => Object.assign(translations[lang], authKeys[lang]));
+  }
+})();
+
+/* ── Dashboard text-map engine ──
+   Translates text in dashboards that don't have data-i18n tags
+   by walking all text nodes and replacing known phrases.
+── */
+(function () {
+  const textMap = {
+    sw: {
+      // Navigation / sidebar
+      "Dashboard": "Dashibodi",
+      "Measurements": "Vipimo",
+      "Design Preview": "Mfano wa Muundo",
+      "Chat": "Gumzo",
+      "Payment": "Malipo",
+      "Delivery": "Utoaji",
+      "Inventory": "Hifadhi",
+      "Earnings": "Mapato",
+      "Customers": "Wateja",
+      "Orders": "Maagizo",
+      "Products": "Bidhaa",
+      "Fittings": "Majaribio",
+      "Wishlist": "Orodha ya Matakwa",
+      "Reviews": "Maoni",
+      "Settings": "Mipangilio",
+      "Logout": "Toka",
+      "Log Out": "Toka",
+      "Overview": "Muhtasari",
+      "Queue": "Foleni",
+      "Appointments": "Miadi",
+      "Menu": "Menyu",
+      "Services": "Huduma",
+      "Bookings": "Uhifadhi",
+      "Stock": "Hisa",
+      "Reports": "Ripoti",
+      "Profile": "Wasifu",
+      "Notifications": "Arifa",
+
+      // Common UI
+      "Submit": "Wasilisha",
+      "Save": "Hifadhi",
+      "Cancel": "Ghairi",
+      "Delete": "Futa",
+      "Edit": "Hariri",
+      "Add": "Ongeza",
+      "Update": "Sasisha",
+      "Search": "Tafuta",
+      "Filter": "Chuja",
+      "Loading...": "Inapakia...",
+      "No data found": "Hakuna data",
+      "No records found": "Hakuna rekodi",
+      "Mark as Delivered": "Weka kama Imetolewa",
+      "Mark Delivered": "Weka Imetolewa",
+      "Delivered": "Imetolewa",
+      "Pending": "Inasubiri",
+      "Completed": "Imekamilika",
+      "Cancelled": "Imeghairiwa",
+      "Active": "Inafanya kazi",
+      "Inactive": "Haifanyi kazi",
+      "Send": "Tuma",
+      "Upload": "Pakia",
+      "Download": "Pakua",
+      "View": "Angalia",
+      "Close": "Funga",
+      "Confirm": "Thibitisha",
+      "Back": "Rudi",
+      "Next": "Mbele",
+      "Previous": "Nyuma",
+      "Select": "Chagua",
+      "Choose": "Chagua",
+      "Enter": "Ingiza",
+      "Type": "Andika",
+      "Name": "Jina",
+      "Email": "Barua Pepe",
+      "Phone": "Simu",
+      "Address": "Anwani",
+      "Date": "Tarehe",
+      "Time": "Wakati",
+      "Amount": "Kiasi",
+      "Price": "Bei",
+      "Total": "Jumla",
+      "Quantity": "Idadi",
+      "Size": "Ukubwa",
+      "Status": "Hali",
+      "Action": "Hatua",
+      "Actions": "Hatua",
+      "Description": "Maelezo",
+      "Notes": "Maelezo",
+      "Message": "Ujumbe",
+      "Send Message": "Tuma Ujumbe",
+      "Type a message...": "Andika ujumbe...",
+      "No messages yet": "Hakuna ujumbe bado",
+      "Select a designer": "Chagua mbuni",
+      "Select a provider": "Chagua mtoa huduma",
+      "Select a customer": "Chagua mteja",
+      "Garment Type": "Aina ya Nguo",
+      "Measurements": "Vipimo",
+      "Chest": "Kifua",
+      "Waist": "Kiuno",
+      "Hips": "Nyonga",
+      "Shoulder": "Bega",
+      "Sleeve": "Mkono",
+      "Length": "Urefu",
+      "Inseam": "Ndani ya Mguu",
+      "Neck": "Shingo",
+      "Submit Measurements": "Wasilisha Vipimo",
+      "Upload Design": "Pakia Muundo",
+      "Design Photos": "Picha za Muundo",
+      "Product Previews": "Mifano ya Bidhaa",
+      "Delivery Preference": "Mapendeleo ya Utoaji",
+      "Home Delivery": "Utoaji Nyumbani",
+      "Pickup": "Kuchukua",
+      "Delivery Address": "Anwani ya Utoaji",
+      "Location Notes": "Maelezo ya Mahali",
+      "Pay Now": "Lipa Sasa",
+      "Payment History": "Historia ya Malipo",
+      "Subscription": "Usajili",
+      "Subscription Status": "Hali ya Usajili",
+      "Expires": "Inaisha",
+      "Active Subscription": "Usajili Unaofanya Kazi",
+      "No active subscription": "Hakuna usajili unaofanya kazi",
+      "Ask ChatGPT": "Uliza ChatGPT",
+      "AI Assistant": "Msaidizi wa AI",
+      "Fashion Assistant": "Msaidizi wa Mitindo",
+      "Open ChatGPT": "Fungua ChatGPT",
+      "Delivered Orders": "Maagizo Yaliyotolewa",
+      "Delivered Inventory": "Hifadhi ya Yaliyotolewa",
+      "Customer Name": "Jina la Mteja",
+      "Delivered At": "Ilitolewa Tarehe",
+      "Delivery Type": "Aina ya Utoaji",
+      "Total Customers": "Jumla ya Wateja",
+      "Total Orders": "Jumla ya Maagizo",
+      "Total Earnings": "Jumla ya Mapato",
+      "This Month": "Mwezi Huu",
+      "Today": "Leo",
+      "Welcome": "Karibu",
+      "Hello": "Habari",
+      "Good morning": "Habari za asubuhi",
+      "Good afternoon": "Habari za mchana",
+      "Good evening": "Habari za jioni",
+      "Provider Dashboard": "Dashibodi ya Mtoa Huduma",
+      "Customer Dashboard": "Dashibodi ya Mteja",
+      "Designer Dashboard": "Dashibodi ya Mbuni",
+      "Salon Dashboard": "Dashibodi ya Saluni",
+      "Restaurant Dashboard": "Dashibodi ya Mgahawa",
+      "Boutique Dashboard": "Dashibodi ya Boutique",
+      "Hardware Dashboard": "Dashibodi ya Vifaa",
+      "Agrovet Dashboard": "Dashibodi ya Agrovet",
+      "Cyber Dashboard": "Dashibodi ya Cyber",
+      "My Orders": "Maagizo Yangu",
+      "My Measurements": "Vipimo Vyangu",
+      "My Designs": "Miundo Yangu",
+      "My Payments": "Malipo Yangu",
+      "My Delivery": "Utoaji Wangu",
+      "Place Order": "Weka Agizo",
+      "Order History": "Historia ya Maagizo",
+      "Order Details": "Maelezo ya Agizo",
+      "Order Status": "Hali ya Agizo",
+      "Order ID": "Nambari ya Agizo",
+      "Item": "Bidhaa",
+      "Items": "Bidhaa",
+      "Category": "Kategoria",
+      "Rating": "Ukadiriaji",
+      "Review": "Maoni",
+      "Submit Review": "Wasilisha Maoni",
+      "Add to Wishlist": "Ongeza kwenye Orodha",
+      "Remove": "Ondoa",
+      "Book Fitting": "Weka Jaribio",
+      "Fitting Date": "Tarehe ya Jaribio",
+      "Fitting Time": "Wakati wa Jaribio",
+      "Fitting Status": "Hali ya Jaribio",
+      "Add Product": "Ongeza Bidhaa",
+      "Product Name": "Jina la Bidhaa",
+      "Product Category": "Kategoria ya Bidhaa",
+      "Product Price": "Bei ya Bidhaa",
+      "Product Stock": "Hisa ya Bidhaa",
+      "Available Sizes": "Ukubwa Unapatikana",
+      "Upload Image": "Pakia Picha",
+      "No products yet": "Hakuna bidhaa bado",
+      "No orders yet": "Hakuna maagizo bado",
+      "No customers yet": "Hakuna wateja bado",
+      "No fittings yet": "Hakuna majaribio bado",
+      "No wishlist items": "Hakuna bidhaa kwenye orodha",
+      "No reviews yet": "Hakuna maoni bado",
+      "No payments yet": "Hakuna malipo bado",
+      "No deliveries yet": "Hakuna utoaji bado",
+      "Refresh": "Onyesha Upya",
+      "Loading": "Inapakia",
+      "Error": "Hitilafu",
+      "Success": "Imefanikiwa",
+      "Warning": "Onyo",
+      "Info": "Taarifa",
+      "per month": "kwa mwezi",
+      "per day": "kwa siku",
+      "month": "mwezi",
+      "day": "siku",
+      "year": "mwaka",
+      "hours": "masaa",
+      "minutes": "dakika",
+      "seconds": "sekunde"
+    }
+  };
+
+  // Build reverse map for en (sw → en)
+  textMap.en = {};
+  Object.entries(textMap.sw).forEach(([en, sw]) => {
+    textMap.en[sw] = en;
+  });
+
+  function applyTextMap(lang) {
+    const map = textMap[lang];
+    if (!map) return;
+
+    // Walk all text nodes in the body
+    const walker = document.createTreeWalker(
+      document.body,
+      NodeFilter.SHOW_TEXT,
+      {
+        acceptNode: function (node) {
+          const parent = node.parentElement;
+          if (!parent) return NodeFilter.FILTER_REJECT;
+          const tag = parent.tagName;
+          if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'INPUT' || tag === 'TEXTAREA') {
+            return NodeFilter.FILTER_REJECT;
+          }
+          // Skip nodes that are already handled by data-i18n
+          if (parent.hasAttribute('data-i18n')) return NodeFilter.FILTER_REJECT;
+          return NodeFilter.FILTER_ACCEPT;
+        }
+      }
+    );
+
+    const nodes = [];
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+
+    nodes.forEach(node => {
+      let text = node.textContent;
+      // Replace each known phrase (longest first to avoid partial matches)
+      const phrases = Object.keys(map).sort((a, b) => b.length - a.length);
+      phrases.forEach(phrase => {
+        if (text.includes(phrase)) {
+          text = text.split(phrase).join(map[phrase]);
+        }
+      });
+      if (text !== node.textContent) {
+        node.textContent = text;
+      }
+    });
+
+    // Also handle placeholders
+    document.querySelectorAll('input[placeholder], textarea[placeholder]').forEach(el => {
+      let ph = el.placeholder;
+      const phrases = Object.keys(map).sort((a, b) => b.length - a.length);
+      phrases.forEach(phrase => {
+        if (ph.includes(phrase)) ph = ph.split(phrase).join(map[phrase]);
+      });
+      el.placeholder = ph;
+    });
+
+    // Handle button values
+    document.querySelectorAll('button, [type="submit"], [type="button"]').forEach(el => {
+      if (el.hasAttribute('data-i18n')) return;
+      let txt = el.textContent.trim();
+      const phrases = Object.keys(map).sort((a, b) => b.length - a.length);
+      phrases.forEach(phrase => {
+        if (txt.includes(phrase)) txt = txt.split(phrase).join(map[phrase]);
+      });
+      if (txt !== el.textContent.trim()) {
+        el.textContent = txt;
+      }
+    });
+  }
+
+  // Hook into applyLang
+  const _prevTextMap = window.applyLang;
+  window.applyLang = function (lang) {
+    if (_prevTextMap) _prevTextMap(lang);
+    setTimeout(() => applyTextMap(lang), 150);
   };
 })();

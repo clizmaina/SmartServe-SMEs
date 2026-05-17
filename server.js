@@ -259,17 +259,27 @@ db.query(`
   )
 `, (err) => { if (err) console.error("❌ provider_subscriptions table error:", err.message); });
 
-// ✅ Nodemailer transporter — uses env vars for credentials
+// ✅ Nodemailer transporter — explicit Gmail SMTP (port 587 STARTTLS)
+// Using explicit host/port instead of service:'gmail' for better reliability on cloud
+const emailPass = (process.env.EMAIL_PASS || '').replace(/\s/g, '');
 const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false,          // STARTTLS (upgrades after connect)
     auth: {
         user: process.env.EMAIL_USER,
-        pass: (process.env.EMAIL_PASS || '').replace(/\s/g, '') // remove spaces from app password
+        pass: emailPass
     },
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 15000
+    tls: {
+        rejectUnauthorized: false  // allow self-signed certs (needed on some hosts)
+    },
+    connectionTimeout: 15000,
+    greetingTimeout: 15000,
+    socketTimeout: 20000
 });
+
+// Log email config on startup (without exposing the password)
+console.log(`📧 Email configured: ${process.env.EMAIL_USER || '(not set)'} | pass length: ${emailPass.length}`);
 
 // ✅ In-memory OTP store: { "email|businessType": { otp, expiresAt, userData } }
 const otpStore = {};
@@ -289,6 +299,29 @@ const upload = multer({ storage: storage });
 // ✅ Health Check (API only)
 app.get("/health", (req, res) => {
     res.json({ success: true, message: "Server is running!" });
+});
+
+// ✅ Email test endpoint — visit /test-email?to=youraddress@gmail.com on Render to verify
+app.get("/test-email", async (req, res) => {
+    const to = req.query.to || process.env.EMAIL_USER;
+    if (!process.env.EMAIL_USER || !emailPass) {
+        return res.json({ success: false, message: "❌ EMAIL_USER or EMAIL_PASS not set in environment." });
+    }
+    try {
+        const info = await transporter.sendMail({
+            from: `"SmartServe SMEs" <${process.env.EMAIL_USER}>`,
+            to,
+            subject: "SmartServe SMEs — Email Test",
+            html: `<h2 style="color:#006600;">✅ Email is working!</h2>
+                   <p>Your SmartServe SMEs email system is configured correctly.</p>
+                   <p>OTP verification emails will be delivered successfully.</p>
+                   <p style="color:#888;font-size:0.8rem;">Sent at: ${new Date().toISOString()}</p>`
+        });
+        res.json({ success: true, message: `✅ Test email sent to ${to}`, messageId: info.messageId });
+    } catch (err) {
+        console.error("❌ Test email error:", err.message);
+        res.json({ success: false, message: "❌ Email failed: " + err.message, code: err.code });
+    }
 });
 
 // ✅ DB Status check
@@ -345,11 +378,11 @@ app.post("/send-otp", async (req, res) => {
                 </div>
             `
         });
+        console.log(`✅ OTP email sent to ${email}`);
         res.json({ success: true, message: "✅ OTP sent to your email." });
     } catch (err) {
-        console.error("❌ Email send error:", err.message);
+        console.error("❌ Email send error:", err.code, err.message);
         // Email failed but OTP is stored — return it directly so signup can still work
-        // In production with working email, remove the otp from this response
         res.json({
             success: true,
             message: "⚠️ Email delivery failed. Your verification code is: " + otp,
@@ -1689,7 +1722,7 @@ app.post("/tailoring/mark-delivered", async (req, res) => {
 
     // Get latest garment type from measurements
     const [meas] = await db.promise().query(
-      "SELECT garment_type FROM measurements WHERE customer_id = ? AND designer_id = ? ORDER BY created_at DESC LIMIT 1",
+      "SELECT garment_type FROM customer_measurements WHERE user_id = ? AND designer_id = ? ORDER BY created_at DESC LIMIT 1",
       [customerId, designerId]
     );
     const garmentType = meas[0]?.garment_type || "Custom Garment";
