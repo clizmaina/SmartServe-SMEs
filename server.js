@@ -74,7 +74,6 @@ app.use(session({
 let dbConfig;
 
 if (process.env.MYSQL_PUBLIC_URL) {
-    // Railway provides a full connection URL — parse it
     const url = new URL(process.env.MYSQL_PUBLIC_URL);
     dbConfig = {
         host:     url.hostname,
@@ -82,7 +81,10 @@ if (process.env.MYSQL_PUBLIC_URL) {
         password: url.password,
         database: url.pathname.replace('/', ''),
         port:     parseInt(url.port) || 3306,
-        ssl: { rejectUnauthorized: false }
+        ssl: { rejectUnauthorized: false },
+        waitForConnections: true,
+        connectionLimit: 10,
+        queueLimit: 0
     };
     console.log("🔗 Using MYSQL_PUBLIC_URL:", url.hostname);
 } else {
@@ -92,25 +94,27 @@ if (process.env.MYSQL_PUBLIC_URL) {
         password: process.env.DB_PASSWORD || "smart123456",
         database: process.env.DB_NAME     || "smartstitchtech",
         port:     parseInt(process.env.DB_PORT || "3306"),
-        ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined
+        ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
+        waitForConnections: true,
+        connectionLimit: 10,
+        queueLimit: 0
     };
     console.log("🔗 Using DB_HOST:", dbConfig.host);
 }
 
-const db = mysql.createConnection(dbConfig);
+// Use a pool instead of a single connection — handles reconnects automatically
+const db = mysql.createPool(dbConfig);
 
-function connectDB() {
-    db.connect(err => {
-        if (err) {
-            console.error("❌ Database connection failed:", err.message);
-            console.log("⏳ Retrying in 5 seconds...");
-            setTimeout(connectDB, 5000);
-        } else {
-            console.log("✅ Connected to MySQL database!");
-        }
-    });
-}
-connectDB();
+// Test the connection on startup
+db.getConnection((err, connection) => {
+    if (err) {
+        console.error("❌ Database connection failed:", err.message);
+        console.log("⚠️  Server will continue — DB queries will fail until connection is restored.");
+    } else {
+        console.log("✅ Connected to MySQL database!");
+        connection.release();
+    }
+});
 
 // ✅ Run DB migrations — add is_verified + provider_id columns if missing
 db.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_verified TINYINT(1) NOT NULL DEFAULT 0`, () => {});
