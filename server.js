@@ -276,21 +276,20 @@ async function sendEmail({ to, toName, subject, html }) {
             const response = await axios.post(
                 'https://api.brevo.com/v3/smtp/email',
                 {
+                    // Use Brevo's own domain as sender — avoids Gmail blocking self-sent emails
+                    // Gmail rejects emails sent FROM a Gmail address THROUGH a third-party relay
                     sender: {
                         name: 'SmartServe SMEs',
-                        email: process.env.EMAIL_USER || 'smartstitchtech01@gmail.com'
+                        email: 'noreply@smartserve.brevo.com'
                     },
                     to: [{ email: to, name: toName || to }],
+                    // Reply-to points back to the business email
                     replyTo: {
                         email: process.env.EMAIL_USER || 'smartstitchtech01@gmail.com',
                         name: 'SmartServe SMEs'
                     },
                     subject,
                     htmlContent: html,
-                    headers: {
-                        'X-Mailin-custom': 'smartserve-otp',
-                        'charset': 'utf-8'
-                    },
                     tags: ['otp', 'transactional']
                 },
                 {
