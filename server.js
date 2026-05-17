@@ -281,8 +281,17 @@ async function sendEmail({ to, toName, subject, html }) {
                         email: process.env.EMAIL_USER || 'smartstitchtech01@gmail.com'
                     },
                     to: [{ email: to, name: toName || to }],
+                    replyTo: {
+                        email: process.env.EMAIL_USER || 'smartstitchtech01@gmail.com',
+                        name: 'SmartServe SMEs'
+                    },
                     subject,
-                    htmlContent: html
+                    htmlContent: html,
+                    headers: {
+                        'X-Mailin-custom': 'smartserve-otp',
+                        'charset': 'utf-8'
+                    },
+                    tags: ['otp', 'transactional']
                 },
                 {
                     headers: {
@@ -413,14 +422,17 @@ app.post("/send-otp", async (req, res) => {
         await sendEmail({
             to: email,
             toName: name,
-            subject: "Your SmartServe SMEs Verification Code",
+            subject: `${otp} is your SmartServe SMEs verification code`,
             html: `
                 <div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;padding:30px;border:1px solid #eee;border-radius:10px;">
-                    <h2 style="color:#006600;">Verify your email</h2>
+                    <h2 style="color:#006600;">SmartServe SMEs — Verify your email</h2>
                     <p>Hi <strong>${name}</strong>,</p>
                     <p>Use the code below to complete your registration for <strong>${businessType}</strong>:</p>
-                    <div style="font-size:2.5rem;font-weight:bold;letter-spacing:10px;text-align:center;padding:20px;background:#f4f4f4;border-radius:8px;margin:20px 0;">${otp}</div>
-                    <p style="color:#888;font-size:0.85rem;">This code expires in 10 minutes. If you didn't request this, ignore this email.</p>
+                    <div style="font-size:2.5rem;font-weight:bold;letter-spacing:10px;text-align:center;padding:20px;background:#f4f4f4;border-radius:8px;margin:20px 0;color:#006600;">${otp}</div>
+                    <p>This code expires in <strong>10 minutes</strong>.</p>
+                    <p style="color:#888;font-size:0.85rem;">If you didn't request this, ignore this email.</p>
+                    <hr style="border:none;border-top:1px solid #eee;margin:20px 0;">
+                    <p style="color:#aaa;font-size:0.75rem;">SmartServe SMEs — Kenya's digital platform for small businesses</p>
                 </div>
             `
         });
