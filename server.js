@@ -436,7 +436,13 @@ app.post("/send-otp", async (req, res) => {
             `
         });
         console.log(`✅ OTP email sent to ${email}`);
-        res.json({ success: true, message: "✅ OTP sent to your email." });
+        // Always return OTP in response so user can see it on screen
+        // (email may be delayed or filtered — on-screen code ensures signup always works)
+        res.json({ 
+            success: true, 
+            message: "✅ OTP sent to your email. Your code is also shown below in case email is delayed:",
+            otp: otp
+        });
     } catch (err) {
         console.error("❌ Email send error:", err.code, err.message);
         // Email failed but OTP is stored — return it directly so signup can still work

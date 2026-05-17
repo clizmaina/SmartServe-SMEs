@@ -50,12 +50,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (data.success) {
                 otpSection.classList.add("visible");
-                // If email failed, the OTP is shown in the message
-                otpMessage.textContent = data.message || ("✅ A 6-digit code was sent to " + email + ". Check your inbox (and spam folder).");
-                // If OTP returned directly (email failed), pre-fill it
                 if (data.otp) {
+                    // Show OTP on screen — pre-fill the input
                     document.getElementById("otpInput").value = data.otp;
-                    otpMessage.textContent = "⚠️ Email delivery failed. Your code has been pre-filled below. Please verify to continue.";
+                    otpMessage.innerHTML = `
+                        <div style="background:#e8f5e9;border:2px solid #006600;border-radius:10px;padding:16px;text-align:center;">
+                            <div style="font-size:0.85rem;color:#555;margin-bottom:8px;">Your verification code:</div>
+                            <div style="font-size:2rem;font-weight:bold;letter-spacing:8px;color:#006600;">${data.otp}</div>
+                            <div style="font-size:0.78rem;color:#888;margin-top:8px;">Code pre-filled below. Click "Verify & Create Account" to continue.</div>
+                        </div>
+                    `;
+                } else {
+                    otpMessage.textContent = data.message || ("✅ A 6-digit code was sent to " + email + ". Check your inbox (and spam folder).");
                 }
             } else {
                 alert("❌ " + data.message);
