@@ -27,7 +27,7 @@ function fetchDesigner() {
     const userData = JSON.parse(localStorage.getItem("user"));
     const businessType = userData?.businessType || localStorage.getItem("businessType");
 
-    fetch(`https://smartserve-smes.onrender.com/available-providers?businessType=${businessType}`, { credentials: "include" })
+    fetch(`http://localhost:5501/available-providers?businessType=${businessType}`, { credentials: "include" })
         .then(response => response.json())
         .then(data => {
             designerSelect.innerHTML = "<option value=''>Select a designer / provider</option>";
@@ -53,7 +53,7 @@ function fetchDesigner() {
         const customerId = window.customerId;
         if (!providerId || !customerId) return;
 
-        fetch("https://smartserve-smes.onrender.com/select-provider", {
+        fetch("http://localhost:5501/select-provider", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             credentials: "include",
@@ -116,7 +116,7 @@ function uploadDesign(event) {
         designerId: selectedDesignerId,
     });
 
-    fetch("https://smartserve-smes.onrender.com/upload-design", {
+    fetch("http://localhost:5501/upload-design", {
         method: "POST",
         body: formData,
         credentials: "include",
@@ -213,7 +213,7 @@ document.getElementById("measurementForm").addEventListener("submit", async (e) 
   console.log("📏 Sending Measurements:", data);
 
   try {
-    const res = await fetch("https://smartserve-smes.onrender.com/submit-measurements", {
+    const res = await fetch("http://localhost:5501/submit-measurements", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data)
@@ -239,7 +239,7 @@ function refreshChat() {
     const selectedDesignerId = validateDesignerSelection();
     if (!selectedDesignerId) return;
 
-    fetch(`https://smartserve-smes.onrender.com/chat/${window.customerId}/${selectedDesignerId}`, { credentials: "include" })
+    fetch(`http://localhost:5501/chat/${window.customerId}/${selectedDesignerId}`, { credentials: "include" })
     .then(response => response.json())
     .then(data => {
         const chatMessages = document.getElementById("chat-messages");
@@ -260,7 +260,7 @@ function refreshChat() {
 
 // Function to log out user
 function logoutUser() {
-    fetch("https://smartserve-smes.onrender.com/logout", {
+    fetch("http://localhost:5501/logout", {
         method: "POST",
         credentials: "include"
     })
@@ -324,7 +324,7 @@ function initiateMpesaPayment() {
         return;
     }
 
-    fetch("https://smartserve-smes.onrender.com/api/mpesa/stk-push", {
+    fetch("http://localhost:5501/api/mpesa/stk-push", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -356,7 +356,7 @@ function sendCustomerMessage() {
         return;
     }
 
-    fetch("https://smartserve-smes.onrender.com/send-message", {
+    fetch("http://localhost:5501/send-message", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -381,7 +381,7 @@ function viewPreviews() {
     const selectedDesignerId = validateDesignerSelection();
     if (!selectedDesignerId) return;
 
-    fetch(`https://smartserve-smes.onrender.com/product-previews/${selectedDesignerId}`, { credentials: "include" })
+    fetch(`http://localhost:5501/product-previews/${selectedDesignerId}`, { credentials: "include" })
     .then(response => response.json())
     .then(data => {
         const previewList = document.getElementById("preview-list");

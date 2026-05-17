@@ -8,6 +8,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const verifyOtpBtn = document.getElementById("verifyOtpBtn");
     const resendBtn    = document.getElementById("resendBtn");
 
+    // Base URL — uses config.js on live site, falls back to localhost for local dev
+    function getBase() {
+        return (window.API_BASE) || "http://localhost:5501";
+    }
+
     // ── Step 1: collect details and send OTP ──────────────────────────────────
     signupForm.addEventListener("submit", async (e) => {
         e.preventDefault();
@@ -19,11 +24,11 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     async function sendOtp() {
-        const name         = document.getElementById("name").value.trim();
-        const email        = document.getElementById("email").value.trim();
-        const password     = document.getElementById("password").value.trim();
-        const role         = document.getElementById("userType").value;
-        const bt           = localStorage.getItem("businessType");
+        const name     = document.getElementById("name").value.trim();
+        const email    = document.getElementById("email").value.trim();
+        const password = document.getElementById("password").value.trim();
+        const role     = document.getElementById("userType").value;
+        const bt       = localStorage.getItem("businessType");
 
         if (!name || !email || !password || !role || !bt) {
             alert("❌ Please fill in all fields and make sure you selected a business type.");
@@ -35,7 +40,7 @@ document.addEventListener("DOMContentLoaded", () => {
         sendOtpBtn.textContent = "Sending…";
 
         try {
-            const res  = await fetch("https://smartserve-smes.onrender.com/send-otp", {
+            const res = await fetch(getBase() + "/send-otp", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",
@@ -45,7 +50,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (data.success) {
                 otpSection.classList.add("visible");
-                otpMessage.textContent = `✅ A 6-digit code was sent to ${email}. Check your inbox (and spam folder).`;
+                otpMessage.textContent = "✅ A 6-digit code was sent to " + email + ". Check your inbox (and spam folder).";
             } else {
                 alert("❌ " + data.message);
             }
@@ -73,7 +78,7 @@ document.addEventListener("DOMContentLoaded", () => {
         verifyOtpBtn.textContent = "Verifying…";
 
         try {
-            const res  = await fetch("https://smartserve-smes.onrender.com/signup", {
+            const res = await fetch(getBase() + "/signup", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",
@@ -83,7 +88,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (data.success) {
                 if (data.requiresSubscription) {
-                    // Provider — must pay before logging in
                     localStorage.setItem("pendingProviderId", data.userId);
                     localStorage.setItem("pendingProviderRole", data.role);
                     window.location.href = "provider-subscription.html";

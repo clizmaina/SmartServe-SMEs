@@ -71,14 +71,33 @@ app.use(session({
 }));
 
 // ✅ Database Connection — uses Railway env vars in production, local XAMPP in dev
-const db = mysql.createConnection({
-    host:     process.env.DB_HOST     || "localhost",
-    user:     process.env.DB_USER     || "smartstitsch",
-    password: process.env.DB_PASSWORD || "smart123456",
-    database: process.env.DB_NAME     || "smartstitchtech",
-    port:     parseInt(process.env.DB_PORT || "3306"),
-    ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined
-});
+let dbConfig;
+
+if (process.env.MYSQL_PUBLIC_URL) {
+    // Railway provides a full connection URL — parse it
+    const url = new URL(process.env.MYSQL_PUBLIC_URL);
+    dbConfig = {
+        host:     url.hostname,
+        user:     url.username,
+        password: url.password,
+        database: url.pathname.replace('/', ''),
+        port:     parseInt(url.port) || 3306,
+        ssl: { rejectUnauthorized: false }
+    };
+    console.log("🔗 Using MYSQL_PUBLIC_URL:", url.hostname);
+} else {
+    dbConfig = {
+        host:     process.env.DB_HOST     || "localhost",
+        user:     process.env.DB_USER     || "smartstitsch",
+        password: process.env.DB_PASSWORD || "smart123456",
+        database: process.env.DB_NAME     || "smartstitchtech",
+        port:     parseInt(process.env.DB_PORT || "3306"),
+        ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined
+    };
+    console.log("🔗 Using DB_HOST:", dbConfig.host);
+}
+
+const db = mysql.createConnection(dbConfig);
 
 function connectDB() {
     db.connect(err => {
