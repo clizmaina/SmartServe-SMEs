@@ -270,30 +270,31 @@ const resendKey = process.env.RESEND_API_KEY;
 
 async function sendEmail({ to, toName, subject, html }) {
 
-    // ── Option A: Resend SMTP (best Gmail deliverability, works on Render) ────
+    // ── Option A: Resend HTTP API (best Gmail deliverability, works everywhere) ─
     if (resendKey) {
         try {
-            const nodemailer = require('nodemailer');
-            const transporter = nodemailer.createTransport({
-                host: 'smtp.resend.com',
-                port: 465,
-                secure: true,
-                auth: {
-                    user: 'resend',
-                    pass: resendKey
+            const response = await axios.post(
+                'https://api.resend.com/emails',
+                {
+                    from: 'SmartServe SMEs <onboarding@resend.dev>',
+                    to: [to],
+                    reply_to: process.env.EMAIL_USER || 'smartstitchtech01@gmail.com',
+                    subject,
+                    html
+                },
+                {
+                    headers: {
+                        'Authorization': `Bearer ${resendKey}`,
+                        'Content-Type': 'application/json'
+                    },
+                    timeout: 15000
                 }
-            });
-            const info = await transporter.sendMail({
-                from: 'SmartServe SMEs <onboarding@resend.dev>',
-                to,
-                replyTo: process.env.EMAIL_USER || 'smartstitchtech01@gmail.com',
-                subject,
-                html
-            });
-            console.log(`✅ Email sent via Resend to ${to} | id: ${info.messageId}`);
+            );
+            console.log(`✅ Email sent via Resend to ${to} | id: ${response.data.id}`);
             return { success: true };
         } catch (err) {
-            console.error('❌ Resend error:', err.message);
+            const errMsg = err.response?.data?.message || err.message;
+            console.error('❌ Resend error:', errMsg);
             // fall through to Brevo
         }
     }
