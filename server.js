@@ -8,12 +8,12 @@ const nodemailer = require('nodemailer');
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5501;
 const axios = require("axios");
 const session = require('express-session');
 require("dotenv").config();
 
-// ✅ CORS Setup — Dynamic (works with localhost + LAN IPs)
+// ✅ CORS Setup — allows localhost, LAN, and production Render domain
 const allowedOrigins = [
   "http://192.168.100.32:5502",
   "http://localhost:5502",
@@ -23,7 +23,8 @@ const allowedOrigins = [
   "http://127.0.0.1:5503",
   "http://192.168.100.32:5504",
   "http://localhost:5504",
-  "http://127.0.0.1:5504"
+  "http://127.0.0.1:5504",
+  "https://smartserve-smes.onrender.com"
 ];
 
 // Allow any localhost/127.0.0.1 port (covers Live Server port changes)
@@ -32,11 +33,18 @@ const localhostPattern = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
 // Allow LAN devices (e.g., 192.168.x.x on any port)
 const lanPattern = /^http:\/\/192\.168\.\d{1,3}\.\d{1,3}(:\d+)?$/;
 
+// Allow Render subdomains
+const renderPattern = /^https:\/\/.*\.onrender\.com$/;
+
 app.use(cors({
   origin: function (origin, callback) {
     if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin) || localhostPattern.test(origin) || lanPattern.test(origin)) {
-      console.log("✅ CORS Allowed:", origin);
+    if (
+      allowedOrigins.includes(origin) ||
+      localhostPattern.test(origin) ||
+      lanPattern.test(origin) ||
+      renderPattern.test(origin)
+    ) {
       callback(null, true);
     } else {
       console.log("❌ CORS Blocked:", origin);
@@ -51,22 +59,24 @@ app.use(cors({
 app.options('*', cors());
 
 app.use(session({
-  secret: 'your_secret_key',
+  secret: process.env.SESSION_SECRET || 'smartserve_dev_secret',
   resave: false,
   saveUninitialized: true,
   cookie: {
     maxAge: 1000 * 60 * 60,
     httpOnly: true,
-    secure: false
+    secure: process.env.NODE_ENV === 'production'
   }
 }));
 
-// ✅ Database Connection (XAMPP)
+// ✅ Database Connection — uses Railway env vars in production, local XAMPP in dev
 const db = mysql.createConnection({
-    host: "localhost",
-    user: "smartstitsch",
-    password: "smart123456",
-    database: "smartstitchtech"
+    host:     process.env.DB_HOST     || "localhost",
+    user:     process.env.DB_USER     || "smartstitsch",
+    password: process.env.DB_PASSWORD || "smart123456",
+    database: process.env.DB_NAME     || "smartstitchtech",
+    port:     parseInt(process.env.DB_PORT || "3306"),
+    ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined
 });
 
 db.connect(err => {
