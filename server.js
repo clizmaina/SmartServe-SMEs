@@ -112,14 +112,6 @@ function connectDB() {
 }
 connectDB();
 
-db.on('error', (err) => {
-    console.error("❌ DB error:", err.message);
-    if (err.code === 'PROTOCOL_CONNECTION_LOST') {
-        console.log("⏳ Reconnecting...");
-        connectDB();
-    }
-});
-
 // ✅ Run DB migrations — add is_verified + provider_id columns if missing
 db.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_verified TINYINT(1) NOT NULL DEFAULT 0`, () => {});
 db.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS provider_id INT NULL DEFAULT NULL`, () => {});
