@@ -1,4 +1,4 @@
-// Production build � SmartServe SMEs
+// Production build � SmartServe SMEs
 const cors = require("cors");
 const express = require("express");
 const mysql = require("mysql2");
@@ -80,12 +80,25 @@ const db = mysql.createConnection({
     ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined
 });
 
-db.connect(err => {
-    if (err) {
-        console.error("❌ Database connection failed:", err);
-        process.exit(1);
+function connectDB() {
+    db.connect(err => {
+        if (err) {
+            console.error("❌ Database connection failed:", err.message);
+            console.log("⏳ Retrying in 5 seconds...");
+            setTimeout(connectDB, 5000);
+        } else {
+            console.log("✅ Connected to MySQL database!");
+        }
+    });
+}
+connectDB();
+
+db.on('error', (err) => {
+    console.error("❌ DB error:", err.message);
+    if (err.code === 'PROTOCOL_CONNECTION_LOST') {
+        console.log("⏳ Reconnecting...");
+        connectDB();
     }
-    console.log("✅ Connected to MySQL database!");
 });
 
 // ✅ Run DB migrations — add is_verified + provider_id columns if missing
@@ -242,6 +255,16 @@ const upload = multer({ storage: storage });
 // ✅ Health Check (API only)
 app.get("/health", (req, res) => {
     res.json({ success: true, message: "Server is running!" });
+});
+
+// ✅ DB Status check
+app.get("/db-status", (req, res) => {
+    db.query("SELECT 1", (err) => {
+        if (err) {
+            return res.json({ success: false, error: err.message, host: process.env.DB_HOST || "localhost" });
+        }
+        res.json({ success: true, message: "✅ Database connected", host: process.env.DB_HOST || "localhost" });
+    });
 });
 
 // ✅ Root — serve the website homepage
