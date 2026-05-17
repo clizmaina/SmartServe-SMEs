@@ -264,8 +264,11 @@ const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
         user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS   // use an App Password, not your real password
-    }
+        pass: (process.env.EMAIL_PASS || '').replace(/\s/g, '') // remove spaces from app password
+    },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000
 });
 
 // ✅ In-memory OTP store: { "email|businessType": { otp, expiresAt, userData } }
