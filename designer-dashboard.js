@@ -1,3 +1,6 @@
+// ── Central API base ──────────────────────────────────────────────────────
+function getBase() { return (window.API_BASE) || "https://smartserve-smes.onrender.com"; }
+
 document.addEventListener("DOMContentLoaded", function () {
     const userData = JSON.parse(localStorage.getItem("user"));
     if (!userData || userData.role !== "designer") {
@@ -84,14 +87,14 @@ function showTab(tabId) {
         fetchInventory();
     }
 }
-const baseUrl = "http://localhost:5501/";
+const baseUrl = `${getBase()}/`;
 
 function fetchCustomerDesigns(customerId, designerId) {
   if (!customerId || !designerId) {
     console.error("Missing customerId or designerId");
     return;
   }
-fetch(`http://localhost:5501/customer-designs/${customerId}/${designerId}`, { credentials: "include" })
+fetch(`${getBase()}/customer-designs/${customerId}/${designerId}`, { credentials: "include" })
       .then(response => {
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -105,7 +108,7 @@ fetch(`http://localhost:5501/customer-designs/${customerId}/${designerId}`, { cr
           data.designs.forEach(design => {
             const listItem = document.createElement("li");
             listItem.innerHTML = `
-              <img src="http://localhost:5501${design.file_path}"
+              <img src="${getBase()}${design.file_path}"
                    alt="Design"
                    style="width: 200px; border-radius: 5px; margin: 10px 0;">
               <p>Uploaded on: ${new Date(design.created_at).toLocaleString()}</p>
@@ -124,7 +127,7 @@ fetch(`http://localhost:5501/customer-designs/${customerId}/${designerId}`, { cr
 
  // ✅ Function to fetch and display a customer's measurements
  function fetchCustomerMeasurements(customerId) {
-    fetch(`http://localhost:5501/customer-measurements/${customerId}/${window.designerId}`, { credentials: "include" })
+    fetch(`${getBase()}/customer-measurements/${customerId}/${window.designerId}`, { credentials: "include" })
       .then(response => response.json())
       .then(data => {
         const measurementInfo = document.getElementById("measurement-info");
@@ -169,7 +172,7 @@ fetch(`http://localhost:5501/customer-designs/${customerId}/${designerId}`, { cr
 }
 
 function fetchCustomerPayments(customerId) {
-    fetch(`http://localhost:5501/customer-payments/${customerId}`, { credentials: "include" })
+    fetch(`${getBase()}/customer-payments/${customerId}`, { credentials: "include" })
         .then(response => response.json())
         .then(data => {
             const paymentList = document.getElementById("payment-list");
@@ -192,7 +195,7 @@ function fetchCustomerPayments(customerId) {
 }
 
 function fetchCustomerChat(customerId,designerId) {
-   fetch(`http://localhost:5501/chat/${customerId}/${designerId}`, { credentials: "include" })
+   fetch(`${getBase()}/chat/${customerId}/${designerId}`, { credentials: "include" })
         .then(response => response.json())
         .then(data => {
             const chatDisplay = document.getElementById("chat-display");
@@ -222,7 +225,7 @@ function fetchDesigners() {
     const designerSelect = document.getElementById("designerSelect");
     if (!designerSelect) return;
 
-    fetch("http://localhost:5501/available-designer", { credentials: "include" })
+    fetch(`${getBase()}/available-designer`, { credentials: "include" })
         .then(response => response.json().then(data => ({ status: response.status, data })))
         .then(({ status, data }) => {
             console.log("Designer API Response:", status, data);
@@ -243,7 +246,7 @@ function fetchDesigners() {
 
 function fetchCustomers() {
     const designerId = window.designerId;
-    fetch(`http://localhost:5501/my-customers/${designerId}`, { credentials: "include" })
+    fetch(`${getBase()}/my-customers/${designerId}`, { credentials: "include" })
         .then(response => response.json())
         .then(data => {
             const customerSelect = document.getElementById("customerSelect");
@@ -295,7 +298,7 @@ function uploadPreview(event) {
 
     console.log("Uploading preview for Customer ID:", customerId, "DesignerID:", designerId);
 
-    fetch("http://localhost:5501/upload-preview", {
+    fetch(`${getBase()}/upload-preview`, {
         method: "POST",
         body: formData,
         credentials: "include"
@@ -349,7 +352,7 @@ function sendDesignerMessage(event) {
     const requestData = { sender: "designer", message, customerId, designerId };
     console.log("Sending data:", requestData);
 
-    fetch("http://localhost:5501/send-message", {
+    fetch(`${getBase()}/send-message`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestData),
@@ -372,7 +375,7 @@ function sendDesignerMessage(event) {
 
 
 function logoutDesigner() {
-    fetch("http://localhost:5501/logout", { method: "POST", credentials: "include" })
+    fetch(`${getBase()}/logout`, { method: "POST", credentials: "include" })
         .then(response => response.json())
         .then(data => {
             console.log("Logout Response:", data);
@@ -400,7 +403,7 @@ function fetchCustomerDelivery(customerId, designerId) {
 
     box.innerHTML = "<p style='color:rgba(212,168,67,0.6);'>Loading…</p>";
 
-    fetch(`http://localhost:5501/delivery-preference/${customerId}/${designerId}`, { credentials: "include" })
+    fetch(`${getBase()}/delivery-preference/${customerId}/${designerId}`, { credentials: "include" })
         .then(res => res.json())
         .then(data => {
             // Show the mark-delivered section whenever a customer is selected
@@ -492,7 +495,7 @@ async function markTailoringDelivered() {
     msg.textContent = "";
 
     try {
-        const res  = await fetch("http://localhost:5501/tailoring/mark-delivered", {
+        const res  = await fetch(`${getBase()}/tailoring/mark-delivered`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             credentials: "include",
@@ -539,8 +542,8 @@ async function fetchInventory() {
 
     try {
         const [invRes, delRes] = await Promise.all([
-            fetch(`http://localhost:5501/designer-inventory/${designerId}`, { credentials: "include" }),
-            fetch(`http://localhost:5501/tailoring/delivered-inventory/${designerId}`, { credentials: "include" })
+            fetch(`${getBase()}/designer-inventory/${designerId}`, { credentials: "include" }),
+            fetch(`${getBase()}/tailoring/delivered-inventory/${designerId}`, { credentials: "include" })
         ]);
         const [data, delData] = await Promise.all([invRes.json(), delRes.json()]);
 
@@ -602,10 +605,10 @@ function renderInventory(data, searchTerm) {
             <tr>
               <td style="color:rgba(255,255,255,0.35);">${i + 1}</td>
               <td>
-                <img src="http://localhost:5501${escHtml(d.file_path)}"
+                <img src="${getBase()}${escHtml(d.file_path)}"
                      class="inv-thumb"
                      alt="design"
-                     onclick="window.open('http://localhost:5501${escHtml(d.file_path)}','_blank')"
+                     onclick="window.open('${getBase()}${escHtml(d.file_path)}','_blank')"
                      onerror="this.style.display='none'">
               </td>
               <td><strong style="color:#fff;">${escHtml(d.customer_name)}</strong></td>
@@ -676,10 +679,10 @@ function renderInventory(data, searchTerm) {
             <tr>
               <td style="color:rgba(255,255,255,0.35);">${i + 1}</td>
               <td>
-                <img src="http://localhost:5501${escHtml(p.image_url)}"
+                <img src="${getBase()}${escHtml(p.image_url)}"
                      class="inv-thumb"
                      alt="preview"
-                     onclick="window.open('http://localhost:5501${escHtml(p.image_url)}','_blank')"
+                     onclick="window.open('${getBase()}${escHtml(p.image_url)}','_blank')"
                      onerror="this.style.display='none'">
               </td>
               <td><strong style="color:#fff;">${escHtml(p.customer_name)}</strong></td>
