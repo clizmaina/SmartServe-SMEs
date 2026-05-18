@@ -97,35 +97,61 @@
     <h2 data-i18n="signup.h">Create Account</h2>
     <p class="sub" data-i18n="signup.sub">Join thousands of Kenyan businesses on SmartServe</p>
 
-    <!-- Step 1 -->
+    <!-- Step 1: Basic details -->
     <form id="signup-form">
       <label data-i18n="signup.name">Full Name</label>
-      <input type="text" id="name" data-i18n-placeholder="signup.name.ph" placeholder="Full Name" required>
+      <input type="text" id="name" placeholder="Full Name" required>
 
       <label data-i18n="signup.email">Email Address</label>
-      <input type="email" id="email" data-i18n-placeholder="signup.email.ph" placeholder="Email Address" required>
+      <input type="email" id="email" placeholder="Email Address" required>
 
       <label data-i18n="signup.password">Password</label>
-      <input type="password" id="password" data-i18n-placeholder="signup.pass.ph" placeholder="Password" required>
+      <input type="password" id="password" placeholder="Password" required>
 
       <label data-i18n="signup.role">Sign up as:</label>
       <select id="userType" required>
-        <option value="customer" data-i18n="signup.role.customer">Customer</option>
-        <option value="designer" data-i18n="signup.role.provider">Provider / Designer</option>
+        <option value="customer">Customer</option>
+        <option value="designer">Provider / Designer</option>
       </select>
 
       <input type="hidden" id="businessCategory">
-      <button type="submit" id="sendOtpBtn" class="btn-primary" data-i18n="signup.sendotp">Send Verification Code</button>
+      <button type="submit" id="sendOtpBtn" class="btn-primary">Send Verification Code</button>
     </form>
 
-    <!-- Step 2: OTP -->
+    <!-- Step 2: Email OTP -->
     <div class="otp-section" id="otpSection">
       <p id="otpMessage"></p>
-      <label data-i18n="signup.otp.label">Enter the 6-digit code sent to your email:</label>
+      <label>Enter the 6-digit code sent to your email:</label>
       <input type="text" id="otpInput" class="otp-input" maxlength="6" placeholder="000000">
-      <button type="button" id="verifyOtpBtn" class="btn-primary" data-i18n="signup.verify">Verify &amp; Create Account</button>
+      <button type="button" id="verifyOtpBtn" class="btn-primary">Verify Email Code</button>
       <br>
-      <button type="button" id="resendBtn" data-i18n="signup.resend">Resend code</button>
+      <button type="button" id="resendBtn">Resend code</button>
+    </div>
+
+    <!-- Step 3: Phone + ID verification -->
+    <div class="otp-section" id="phoneSection">
+      <div style="background:#f0f9f0;border:1px solid #006600;border-radius:10px;padding:14px 16px;margin-bottom:18px;">
+        <p style="color:#006600;font-size:0.88rem;font-weight:600;margin-bottom:4px;">✅ Email verified!</p>
+        <p style="color:#555;font-size:0.82rem;">Now add your personal details for account security.</p>
+      </div>
+
+      <label>📱 Phone Number (M-Pesa / WhatsApp)</label>
+      <input type="tel" id="phoneNumber" placeholder="e.g. 0712345678" required>
+
+      <label>🪪 National ID / Passport Number</label>
+      <input type="text" id="idNumber" placeholder="e.g. 12345678" required>
+
+      <button type="button" id="sendSmsOtpBtn" class="btn-primary">📲 Send SMS Verification Code</button>
+    </div>
+
+    <!-- Step 4: SMS OTP -->
+    <div class="otp-section" id="smsOtpSection">
+      <p id="smsOtpMessage"></p>
+      <label>Enter the 6-digit code sent to your phone:</label>
+      <input type="text" id="smsOtpInput" class="otp-input" maxlength="6" placeholder="000000">
+      <button type="button" id="verifySmsOtpBtn" class="btn-primary">✅ Complete Registration</button>
+      <br>
+      <button type="button" id="resendSmsBtn" style="background:none;border:none;color:var(--green);cursor:pointer;font-size:0.85rem;padding:0;margin-top:8px;text-decoration:underline;font-family:'Poppins',sans-serif;">Resend SMS code</button>
     </div>
 
     <div class="footer-link">
