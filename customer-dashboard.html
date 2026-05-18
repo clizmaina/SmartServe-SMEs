@@ -544,6 +544,16 @@
       </div>
       <div class="card">
         <h2>📐 Body Measurements</h2>
+
+        <!-- Show selected style if customer came from Smart Items tab -->
+        <div id="meas-style-reminder" style="display:none;margin-bottom:18px;padding:14px 18px;background:rgba(212,168,67,0.08);border:1px solid rgba(212,168,67,0.25);border-radius:12px;">
+          <p style="font-size:0.8rem;color:rgba(255,255,255,0.5);margin-bottom:6px;">📌 Selected style:</p>
+          <div style="display:flex;gap:12px;align-items:center;">
+            <img id="meas-style-img" src="" style="width:60px;height:60px;object-fit:cover;border-radius:8px;border:1px solid rgba(212,168,67,0.3);">
+            <p id="meas-style-desc" style="color:var(--gold-light);font-size:0.88rem;font-weight:600;"></p>
+          </div>
+        </div>
+
         <label for="garmentType">Select Garment Type</label>
         <select id="garmentType">
           <option value="">— Choose Garment —</option>
@@ -858,7 +868,7 @@
       } catch (e) { console.error('Error loading delivery pref:', e); }
     }
 
-    // ── Override showTab to hook delivery tab ──
+    // ── Override showTab to hook delivery + smart-items tabs ──
     const _baseShowTab = window.showTab;
     window.showTab = function(tabId) {
       _baseShowTab(tabId);
@@ -867,6 +877,23 @@
         if (designerId) loadCurrentDeliveryPref(designerId);
       }
       if (tabId === 'smart-items') loadSmartItems();
+      if (tabId === 'submit-measurements') {
+        // Show selected style reminder if customer picked one
+        const saved = localStorage.getItem('si_selected_style');
+        if (saved) {
+          try {
+            const { src, desc } = JSON.parse(saved);
+            const reminder = document.getElementById('meas-style-reminder');
+            const img      = document.getElementById('meas-style-img');
+            const descEl   = document.getElementById('meas-style-desc');
+            if (reminder && img && descEl) {
+              img.src = src;
+              descEl.textContent = desc;
+              reminder.style.display = 'block';
+            }
+          } catch(e) {}
+        }
+      }
     };
 
     // ── Quick-fill AI question chips ──
@@ -1027,18 +1054,34 @@
     const isOut = item.stock === 0;
     const isLow = item.stock > 0 && item.stock <= 5;
 
-    // Sample thumbnails
+    // Sample thumbnails with selection
     const thumbsHtml = item.samples && item.samples.length
-      ? '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:12px;">' +
-        item.samples.slice(0,6).map(s =>
+      ? '<div style="margin-top:16px;">' +
+        '<p style="font-size:0.85rem;color:rgba(255,255,255,0.6);margin-bottom:10px;">📸 <strong style="color:#fff;">Choose a style</strong> — tap a photo to select it:</p>' +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;" id="si-thumb-row">' +
+        item.samples.map((s, idx) =>
+          '<div onclick="siSelectSample(' + idx + ',\'' + siBase() + s.path + '\',\'' + s.description.replace(/'/g,"\\'") + '\')" ' +
+          'id="si-sthumb-' + idx + '" ' +
+          'style="cursor:pointer;border-radius:10px;overflow:hidden;border:2px solid rgba(255,255,255,0.15);transition:all 0.2s;width:80px;height:80px;">' +
           '<img src="' + siBase() + s.path + '" title="' + s.description + '" ' +
-          'onclick="siOpenModal(\'' + siBase() + s.path + '\',\'' + s.description.replace(/'/g,"\\'") + '\')" ' +
-          'onerror="this.style.display:none" ' +
-          'style="width:56px;height:56px;border-radius:8px;object-fit:cover;border:1px solid rgba(212,168,67,0.3);cursor:pointer;">'
+          'onerror="this.parentElement.style.display=\'none\'" ' +
+          'style="width:100%;height:100%;object-fit:cover;display:block;">' +
+          '</div>'
         ).join('') +
-        (item.samples.length > 6 ? '<span style="font-size:0.76rem;color:rgba(255,255,255,0.35);align-self:center;">+' + (item.samples.length-6) + ' more</span>' : '') +
+        '</div>' +
+        // Selected preview area
+        '<div id="si-selected-preview" style="display:none;margin-top:16px;padding:16px;background:rgba(212,168,67,0.08);border:1px solid rgba(212,168,67,0.3);border-radius:12px;">' +
+        '<p style="font-size:0.8rem;color:rgba(255,255,255,0.5);margin-bottom:8px;">✅ Selected style:</p>' +
+        '<div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;">' +
+        '<img id="si-selected-img" src="" style="width:120px;height:120px;object-fit:cover;border-radius:10px;border:2px solid rgba(212,168,67,0.4);">' +
+        '<div>' +
+        '<p id="si-selected-desc" style="color:#fff;font-size:0.9rem;font-weight:600;margin-bottom:6px;"></p>' +
+        '<p style="color:rgba(255,255,255,0.5);font-size:0.8rem;">This style has been noted. Proceed to the <strong style="color:var(--gold-light);">Measurements</strong> tab to submit your measurements for this item.</p>' +
+        '<button class="btn btn-gold" style="margin-top:10px;padding:8px 18px;font-size:0.82rem;" ' +
+        'onclick="showTab(\'submit-measurements\')">📏 Go to Measurements →</button>' +
+        '</div></div></div>' +
         '</div>'
-      : '<p style="font-size:0.8rem;color:rgba(255,255,255,0.35);margin-top:10px;">No sample photos uploaded yet.</p>';
+      : '<p style="font-size:0.8rem;color:rgba(255,255,255,0.35);margin-top:12px;">No sample photos uploaded yet by the designer.</p>';
 
     if (isOut) {
       fb.innerHTML =
@@ -1070,7 +1113,33 @@
     }
   }
 
-  // ── Sample modal ──────────────────────────────────────────────────────
+  // ── Sample selection ──────────────────────────────────────────────────
+  function siSelectSample(idx, src, desc) {
+    // Highlight selected thumbnail
+    document.querySelectorAll('[id^="si-sthumb-"]').forEach(el => {
+      el.style.border = '2px solid rgba(255,255,255,0.15)';
+      el.style.transform = 'scale(1)';
+    });
+    const selected = document.getElementById('si-sthumb-' + idx);
+    if (selected) {
+      selected.style.border = '2px solid #d4a843';
+      selected.style.transform = 'scale(1.08)';
+      selected.style.boxShadow = '0 0 12px rgba(212,168,67,0.5)';
+    }
+    // Show preview
+    const preview = document.getElementById('si-selected-preview');
+    const img     = document.getElementById('si-selected-img');
+    const descEl  = document.getElementById('si-selected-desc');
+    if (preview && img && descEl) {
+      img.src       = src;
+      descEl.textContent = desc;
+      preview.style.display = 'block';
+    }
+    // Store selection in localStorage so measurements tab can reference it
+    localStorage.setItem('si_selected_style', JSON.stringify({ src, desc }));
+  }
+
+  // ── Sample modal (full-screen view) ──────────────────────────────────
   function siOpenModal(src, desc) {
     const old = document.getElementById('si-modal');
     if (old) old.remove();
