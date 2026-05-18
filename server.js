@@ -153,6 +153,52 @@ db.query(`
     UNIQUE KEY unique_customer_designer (customer_id, designer_id)
   )
 `, (err) => { if (err) console.error("❌ delivery_preferences table error:", err.message); });
+
+// ✅ Customer designs table
+db.query(`
+  CREATE TABLE IF NOT EXISTS customer_designs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    customer_id INT NOT NULL,
+    designer_id INT NOT NULL,
+    file_path VARCHAR(300) NOT NULL,
+    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )
+`, (err) => { if (err) console.error("❌ customer_designs table error:", err.message); });
+
+// ✅ Customer measurements table
+db.query(`
+  CREATE TABLE IF NOT EXISTS customer_measurements (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    designer_id INT NOT NULL,
+    garment_type VARCHAR(100),
+    measurements_json TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )
+`, (err) => { if (err) console.error("❌ customer_measurements table error:", err.message); });
+
+// ✅ Product previews table
+db.query(`
+  CREATE TABLE IF NOT EXISTS product_previews (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    customer_id INT NOT NULL,
+    admin_id INT NOT NULL,
+    image_url VARCHAR(300) NOT NULL,
+    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )
+`, (err) => { if (err) console.error("❌ product_previews table error:", err.message); });
+
+// ✅ Chat table
+db.query(`
+  CREATE TABLE IF NOT EXISTS chat (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    customer_id INT NOT NULL,
+    designer_id INT NOT NULL,
+    sender VARCHAR(20) NOT NULL,
+    message TEXT NOT NULL,
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )
+`, (err) => { if (err) console.error("❌ chat table error:", err.message); });
 // Allow same email across different business types
 db.query(`ALTER TABLE users DROP INDEX email`, () => {}); // silently fails if already dropped
 db.query(`ALTER TABLE users ADD UNIQUE KEY IF NOT EXISTS unique_email_business (email, business_type)`, () => {});
@@ -1522,15 +1568,24 @@ app.get("/designer-inventory/:designerId", async (req, res) => {
   const { designerId } = req.params;
   if (!designerId) return res.status(400).json({ success: false, message: "❌ designerId required" });
 
+  // Helper — runs a query and returns [] if the table doesn't exist yet
+  async function safeQuery(sql, params) {
+    try {
+      const [rows] = await db.promise().query(sql, params);
+      return rows;
+    } catch (e) {
+      console.warn("⚠️ safeQuery skipped:", e.message.substring(0, 80));
+      return [];
+    }
+  }
+
   try {
-    // 1. All customers assigned to this designer
-    const [customers] = await db.promise().query(
+    const customers = await safeQuery(
       `SELECT id, name, email FROM users WHERE provider_id = ? AND role = 'customer'`,
       [designerId]
     );
 
-    // 2. All designs uploaded for this designer
-    const [designs] = await db.promise().query(
+    const designs = await safeQuery(
       `SELECT cd.id, cd.customer_id, cd.file_path, cd.uploaded_at AS created_at, u.name AS customer_name
        FROM customer_designs cd
        JOIN users u ON cd.customer_id = u.id
@@ -1539,8 +1594,7 @@ app.get("/designer-inventory/:designerId", async (req, res) => {
       [designerId]
     );
 
-    // 3. All measurements submitted to this designer
-    const [measurements] = await db.promise().query(
+    const measurements = await safeQuery(
       `SELECT cm.id, cm.user_id AS customer_id, cm.garment_type, cm.measurements_json, cm.created_at, u.name AS customer_name
        FROM customer_measurements cm
        JOIN users u ON cm.user_id = u.id
@@ -1549,8 +1603,7 @@ app.get("/designer-inventory/:designerId", async (req, res) => {
       [designerId]
     );
 
-    // 4. All delivery preferences for this designer
-    const [deliveries] = await db.promise().query(
+    const deliveries = await safeQuery(
       `SELECT dp.id, dp.customer_id, dp.delivery_type, dp.address, dp.location_notes, dp.updated_at, u.name AS customer_name
        FROM delivery_preferences dp
        JOIN users u ON dp.customer_id = u.id
@@ -1559,8 +1612,7 @@ app.get("/designer-inventory/:designerId", async (req, res) => {
       [designerId]
     );
 
-    // 5. All previews uploaded by this designer
-    const [previews] = await db.promise().query(
+    const previews = await safeQuery(
       `SELECT pp.id, pp.customer_id, pp.image_url, pp.uploaded_at AS created_at, u.name AS customer_name
        FROM product_previews pp
        JOIN users u ON pp.customer_id = u.id
@@ -1569,7 +1621,6 @@ app.get("/designer-inventory/:designerId", async (req, res) => {
       [designerId]
     );
 
-    // Summary stats
     const stats = {
       totalCustomers:    customers.length,
       totalDesigns:      designs.length,
