@@ -1949,6 +1949,158 @@ db.query(`CREATE TABLE IF NOT EXISTS smart_item_sales (
   FOREIGN KEY (item_id) REFERENCES smart_items(id) ON DELETE CASCADE
 )`, (err) => { if (err) console.error("❌ smart_item_sales:", err.message); });
 
+db.query(`CREATE TABLE IF NOT EXISTS smart_item_orders (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  customer_id INT NOT NULL,
+  designer_id INT NOT NULL,
+  item_id INT NOT NULL,
+  item_name VARCHAR(100),
+  style_desc VARCHAR(300),
+  style_img VARCHAR(300),
+  delivery_type ENUM('pickup','delivery') DEFAULT 'pickup',
+  address TEXT,
+  notes TEXT,
+  payment_method VARCHAR(50),
+  price DECIMAL(10,2),
+  status VARCHAR(50) DEFAULT 'pending',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)`, (err) => { if (err) console.error("❌ smart_item_orders:", err.message); });
+
+// Seed default items if empty
+db.query("SELECT COUNT(*) AS cnt FROM smart_items", (err, rows) => {
+    if (err || rows[0].cnt > 0) return;
+    const defaults = [
+        ["Dress",   2500, 0],
+        ["Trouser", 1500, 3],
+        ["Shirt",   1200, 12],
+        ["Skirt",   1100, 0],
+        ["Coat",    3500, 7]
+    ];
+    defaults.forEach(([name, price, stock]) => {
+        db.query("INSERT IGNORE INTO smart_items (name,price,stock) VALUES (?,?,?)", [name,price,stock]);
+    });
+    const months = [["Dec","2025-12"],["Jan","2026-01"],["Feb","2026-02"],["Mar","2026-03"],["Apr","2026-04"],["May","2026-05"]];
+    const sales  = { Dress:[80,65,45,90,110,95], Trouser:[40,42,38,45,50,55], Shirt:[60,55,48,62,58,75], Skirt:[25,22,30,48,60,72], Coat:[90,85,70,30,15,10] };
+    const prices = { Dress:2500, Trouser:1500, Shirt:1200, Skirt:1100, Coat:3500 };
+    setTimeout(() => {
+        db.query("SELECT id,name FROM smart_items", (e2, items) => {
+            if (e2 || !items) return;
+            items.forEach(item => {
+                (sales[item.name]||[]).forEach((u,i) => {
+                    db.query("INSERT IGNORE INTO smart_item_sales (item_id,month_label,month_year,units_sold,revenue) VALUES (?,?,?,?,?)",
+                        [item.id, months[i][0], months[i][1], u, u*(prices[item.name]||0)]);
+                });
+            });
+        });
+    }, 1500);
+});
+
+// GET /smart-items/stock
+app.get("/smart-items/stock", async (req, res) => {
+    try {
+        const [items]   = await db.promise().query("SELECT id,name,price,stock FROM smart_items ORDER BY name ASC");
+        const [samples] = await db.promise().query("SELECT item_id,id,path,description FROM smart_item_samples ORDER BY uploaded_at ASC");
+        const smap = {};
+        samples.forEach(s => { if (!smap[s.item_id]) smap[s.item_id]=[]; smap[s.item_id].push(s); });
+        res.json({ success:true, items: items.map(i => ({ ...i, samples: smap[i.id]||[] })) });
+    } catch(e) { res.status(500).json({ success:false, message:e.message }); }
+});
+
+// GET /smart-items/trends
+app.get("/smart-items/trends", async (req, res) => {
+    try {
+        const [items] = await db.promise().query("SELECT id,name,price FROM smart_items ORDER BY name ASC");
+        const [sales] = await db.promise().query("SELECT item_id,month_label,month_year,units_sold,revenue FROM smart_item_sales ORDER BY month_year ASC");
+        const smap = {};
+        sales.forEach(s => { if (!smap[s.item_id]) smap[s.item_id]=[]; smap[s.item_id].push({ month:s.month_label, units_sold:s.units_sold, revenue:parseFloat(s.revenue) }); });
+        res.json({ success:true, trends: items.map(i => ({ name:i.name, price:i.price, monthly:smap[i.id]||[] })) });
+    } catch(e) { res.status(500).json({ success:false, message:e.message }); }
+});
+
+// POST /smart-items/stock/:id
+app.post("/smart-items/stock/:id", async (req, res) => {
+    const { stock } = req.body;
+    if (stock === undefined || stock < 0) return res.status(400).json({ success:false, message:"❌ Valid stock required." });
+    try {
+        await db.promise().query("UPDATE smart_items SET stock=? WHERE id=?", [stock, req.params.id]);
+        res.json({ success:true, message:`✅ Stock updated to ${stock} units.` });
+    } catch(e) { res.status(500).json({ success:false, message:e.message }); }
+});
+
+// POST /smart-items/samples/:id  (upload sample image, max 10)
+app.post("/smart-items/samples/:id", upload.single("image"), async (req, res) => {
+    const itemId = req.params.id;
+    if (!req.file) return res.status(400).json({ success:false, message:"❌ No image uploaded." });
+    try {
+        const [rows] = await db.promise().query("SELECT COUNT(*) AS cnt FROM smart_item_samples WHERE item_id=?", [itemId]);
+        if (rows[0].cnt >= 10) return res.status(400).json({ success:false, message:"❌ Max 10 samples already uploaded." });
+        const p = `/uploads/${req.file.filename}`;
+        await db.promise().query("INSERT INTO smart_item_samples (item_id,path,description) VALUES (?,?,?)", [itemId, p, req.body.description||""]);
+        res.json({ success:true, message:`✅ Sample uploaded (${rows[0].cnt+1}/10).`, path:p });
+    } catch(e) { res.status(500).json({ success:false, message:e.message }); }
+});
+
+// DELETE /smart-items/samples/:sampleId
+app.delete("/smart-items/samples/:sampleId", async (req, res) => {
+    try {
+        await db.promise().query("DELETE FROM smart_item_samples WHERE id=?", [req.params.sampleId]);
+        res.json({ success:true, message:"✅ Sample removed." });
+    } catch(e) { res.status(500).json({ success:false, message:e.message }); }
+});
+
+// GET /smart-items/alerts
+app.get("/smart-items/alerts", async (req, res) => {
+    try {
+        const [items] = await db.promise().query("SELECT id,name,stock FROM smart_items WHERE stock<=5 ORDER BY stock ASC");
+        res.json({ success:true, alerts: items.map(i => ({
+            item:i.name, stock:i.stock,
+            type: i.stock===0 ? "OUT_OF_STOCK" : "LOW_STOCK",
+            message: i.stock===0
+                ? `🚨 URGENT: '${i.name}' is OUT OF STOCK. Customers are waiting. Restock immediately.`
+                : `⚠️ LOW STOCK: '${i.name}' has only ${i.stock} unit(s) left. Please add more stock.`
+        }))});
+    } catch(e) { res.status(500).json({ success:false, message:e.message }); }
+});
+
+// POST /smart-items/order — customer places an order
+app.post("/smart-items/order", async (req, res) => {
+    const { customerId, designerId, itemId, itemName, styleDesc, styleImg, deliveryType, address, notes, paymentMethod, price } = req.body;
+    if (!customerId || !designerId || !itemId) {
+        return res.status(400).json({ success:false, message:"❌ Missing required fields." });
+    }
+    try {
+        await db.promise().query(
+            `INSERT INTO smart_item_orders (customer_id,designer_id,item_id,item_name,style_desc,style_img,delivery_type,address,notes,payment_method,price)
+             VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+            [customerId, designerId, itemId, itemName, styleDesc, styleImg, deliveryType||'pickup', address||'', notes||'', paymentMethod||'', price||0]
+        );
+        res.json({ success:true, message:"✅ Order placed successfully." });
+    } catch(e) { res.status(500).json({ success:false, message:e.message }); }
+});
+
+// GET /smart-items/orders/:designerId — designer sees all orders
+app.get("/smart-items/orders/:designerId", async (req, res) => {
+    try {
+        const [rows] = await db.promise().query(
+            `SELECT o.*, u.name AS customer_name, u.email AS customer_email
+             FROM smart_item_orders o
+             LEFT JOIN users u ON o.customer_id = u.id
+             WHERE o.designer_id = ?
+             ORDER BY o.created_at DESC`,
+            [req.params.designerId]
+        );
+        res.json({ success:true, orders: rows });
+    } catch(e) { res.status(500).json({ success:false, message:e.message }); }
+});
+
+// PUT /smart-items/orders/:id/status — designer updates order status
+app.put("/smart-items/orders/:id/status", async (req, res) => {
+    try {
+        await db.promise().query("UPDATE smart_item_orders SET status=? WHERE id=?", [req.body.status, req.params.id]);
+        res.json({ success:true, message:"✅ Order status updated." });
+    } catch(e) { res.status(500).json({ success:false, message:e.message }); }
+});
+
 // Seed default items if empty
 db.query("SELECT COUNT(*) AS cnt FROM smart_items", (err, rows) => {
     if (err || rows[0].cnt > 0) return;

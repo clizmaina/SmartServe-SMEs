@@ -828,6 +828,13 @@
         <h2>🏆 Top Selling Items</h2>
         <div id="sm-top-grid" class="si-top-grid"><p style="color:rgba(255,255,255,0.4);">Loading…</p></div>
       </div>
+
+      <!-- Customer Orders -->
+      <div class="card" style="margin-top:28px;">
+        <h2>🛒 Customer Orders</h2>
+        <p style="color:rgba(255,255,255,0.5);font-size:0.85rem;margin-bottom:16px;">Orders placed by customers — item chosen, style selected, delivery method and payment.</p>
+        <div id="sm-orders-list"><p style="color:rgba(255,255,255,0.4);">Loading orders…</p></div>
+      </div>
     `;
     content.appendChild(div);
   })();
@@ -835,7 +842,7 @@
   function smBase() { return window.API_BASE || 'https://smartserve-smes.onrender.com'; }
 
   // ── Load stock manager ────────────────────────────────────────────────
-  function smLoad() { smLoadAlerts(); smLoadGrid(); smLoadTrends(); }
+  function smLoad() { smLoadAlerts(); smLoadGrid(); smLoadTrends(); smLoadOrders(); }
 
   async function smLoadAlerts() {
     const box = document.getElementById('sm-alerts');
@@ -1009,6 +1016,85 @@
         '<div class="si-top-units">' + tot + ' units sold</div>' +
         '<div class="si-top-rev">KSh ' + rev.toLocaleString() + '</div></div>';
     }).join('');
+  }
+
+  // ── Load customer orders ──────────────────────────────────────────────
+  async function smLoadOrders() {
+    const box = document.getElementById('sm-orders-list');
+    if (!box) return;
+    const designerId = window.designerId;
+    if (!designerId) { box.innerHTML = '<p style="color:rgba(255,255,255,0.4);">Log in as designer to see orders.</p>'; return; }
+    box.innerHTML = '<p style="color:rgba(255,255,255,0.4);">Loading…</p>';
+    try {
+      const res  = await fetch(smBase() + '/smart-items/orders/' + designerId, { credentials:'include' });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.message);
+      if (!data.orders.length) {
+        box.innerHTML = '<p style="color:rgba(255,255,255,0.35);font-size:0.88rem;">No orders yet. Orders placed by customers will appear here.</p>';
+        return;
+      }
+      box.innerHTML = data.orders.map(o => {
+        const isDelivery = o.delivery_type === 'delivery';
+        const statusColor = o.status === 'pending' ? '#fbbf24' : o.status === 'completed' ? '#4ade80' : '#60a5fa';
+        return `
+        <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:18px 20px;margin-bottom:14px;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
+            <div>
+              <span style="font-size:1rem;font-weight:600;color:#fff;">${o.item_name}</span>
+              <span style="margin-left:10px;padding:3px 10px;background:rgba(255,255,255,0.08);border-radius:20px;font-size:0.75rem;color:${statusColor};">● ${o.status}</span>
+            </div>
+            <span style="font-size:0.78rem;color:rgba(255,255,255,0.35);">${new Date(o.created_at).toLocaleString()}</span>
+          </div>
+
+          <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-start;">
+            ${o.style_img ? `<img src="${o.style_img}" style="width:80px;height:80px;object-fit:cover;border-radius:10px;border:2px solid rgba(212,168,67,0.3);flex-shrink:0;" onerror="this.style.display='none'">` : ''}
+            <div style="flex:1;min-width:180px;">
+              <p style="font-size:0.82rem;color:rgba(255,255,255,0.5);margin-bottom:4px;">👤 Customer</p>
+              <p style="font-size:0.9rem;color:#fff;margin-bottom:8px;font-weight:600;">${o.customer_name || 'Unknown'}</p>
+
+              <p style="font-size:0.82rem;color:rgba(255,255,255,0.5);margin-bottom:2px;">🎨 Style Selected</p>
+              <p style="font-size:0.88rem;color:var(--gold-light);margin-bottom:8px;">${o.style_desc || 'No specific style'}</p>
+
+              <div style="display:flex;gap:16px;flex-wrap:wrap;">
+                <div>
+                  <p style="font-size:0.78rem;color:rgba(255,255,255,0.4);margin-bottom:2px;">${isDelivery ? '🚚 Home Delivery' : '🏪 Pick Up'}</p>
+                  ${isDelivery && o.address ? `<p style="font-size:0.82rem;color:rgba(255,255,255,0.7);">${o.address}</p>` : ''}
+                  ${isDelivery && o.notes   ? `<p style="font-size:0.78rem;color:rgba(255,255,255,0.45);">${o.notes}</p>` : ''}
+                </div>
+                <div>
+                  <p style="font-size:0.78rem;color:rgba(255,255,255,0.4);margin-bottom:2px;">💳 Payment</p>
+                  <p style="font-size:0.82rem;color:rgba(255,255,255,0.7);">${o.payment_method === 'mpesa' ? '📱 M-Pesa' : '📷 QR Code'}</p>
+                </div>
+                <div>
+                  <p style="font-size:0.78rem;color:rgba(255,255,255,0.4);margin-bottom:2px;">💰 Price</p>
+                  <p style="font-size:0.88rem;color:var(--gold-light);font-weight:600;">KSh ${Number(o.price).toLocaleString()}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;">
+            <button onclick="smUpdateOrderStatus(${o.id},'processing')" style="padding:7px 14px;font-size:0.78rem;border-radius:8px;background:rgba(96,165,250,0.15);border:1px solid rgba(96,165,250,0.3);color:#60a5fa;cursor:pointer;">🔄 Processing</button>
+            <button onclick="smUpdateOrderStatus(${o.id},'completed')" style="padding:7px 14px;font-size:0.78rem;border-radius:8px;background:rgba(74,222,128,0.15);border:1px solid rgba(74,222,128,0.3);color:#4ade80;cursor:pointer;">✅ Completed</button>
+            <button onclick="smUpdateOrderStatus(${o.id},'cancelled')" style="padding:7px 14px;font-size:0.78rem;border-radius:8px;background:rgba(255,80,80,0.1);border:1px solid rgba(255,80,80,0.25);color:#ff8a9a;cursor:pointer;">❌ Cancel</button>
+          </div>
+        </div>`;
+      }).join('');
+    } catch(e) {
+      box.innerHTML = '<p style="color:#ff8a9a;font-size:0.85rem;">❌ ' + e.message + '</p>';
+    }
+  }
+
+  async function smUpdateOrderStatus(orderId, status) {
+    try {
+      const res  = await fetch(smBase() + '/smart-items/orders/' + orderId + '/status', {
+        method:'PUT', credentials:'include',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ status })
+      });
+      const data = await res.json();
+      if (data.success) smLoadOrders();
+    } catch(e) { alert('❌ Could not update order status.'); }
   }
 
   // ── Hook showTab ──────────────────────────────────────────────────────

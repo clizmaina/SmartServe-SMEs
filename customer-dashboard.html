@@ -967,191 +967,25 @@
   </style>
 
   <!-- Smart Items Stocked TAB (injected into .content) -->
-  <script>
-  // Inject the tab into .content before the inline script block
-  (function() {
-    const content = document.querySelector('.content');
-    if (!content) return;
-    const div = document.createElement('div');
-    div.id = 'smart-items';
-    div.className = 'tab-content';
-    div.innerHTML = `
-      <div class="page-header">
-        <h1>📦 Smart Items Stocked</h1>
-        <p>Choose an item below to check availability from your designer</p>
-      </div>
+  <style>
+    .si-step { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); border-radius:14px; padding:20px 22px; margin-bottom:16px; }
+    .si-step-num { display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; background:var(--gold); color:var(--deep-rose); border-radius:50%; font-size:0.8rem; font-weight:700; margin-right:10px; flex-shrink:0; }
+    .si-step-title { font-size:0.95rem; font-weight:600; color:#fff; display:flex; align-items:center; margin-bottom:14px; }
+    .si-sample-thumb { width:110px; height:110px; border-radius:12px; overflow:hidden; border:3px solid rgba(255,255,255,0.12); cursor:pointer; transition:all 0.22s; flex-shrink:0; position:relative; }
+    .si-sample-thumb:hover { transform:scale(1.06); border-color:rgba(212,168,67,0.5); }
+    .si-sample-thumb.selected { border-color:#d4a843; box-shadow:0 0 16px rgba(212,168,67,0.6); transform:scale(1.06); }
+    .si-sample-thumb img { width:100%; height:100%; object-fit:cover; display:block; }
+    .si-sample-thumb .si-check { display:none; position:absolute; top:4px; right:4px; background:#d4a843; color:#000; border-radius:50%; width:22px; height:22px; font-size:0.75rem; align-items:center; justify-content:center; font-weight:700; }
+    .si-sample-thumb.selected .si-check { display:flex; }
+    .si-delivery-opt { flex:1; min-width:130px; padding:16px; background:rgba(255,255,255,0.05); border:2px solid rgba(255,255,255,0.1); border-radius:12px; text-align:center; cursor:pointer; transition:all 0.22s; }
+    .si-delivery-opt:hover { border-color:rgba(212,168,67,0.4); background:rgba(212,168,67,0.06); }
+    .si-delivery-opt.selected { border-color:#d4a843; background:rgba(212,168,67,0.12); }
+    .si-delivery-opt .icon { font-size:2rem; display:block; margin-bottom:6px; }
+    .si-delivery-opt .label { font-size:0.88rem; font-weight:600; color:#fff; }
+    .si-delivery-opt .sub { font-size:0.75rem; color:rgba(255,255,255,0.45); margin-top:3px; }
+  </style>
 
-      <!-- Item selector card -->
-      <div class="card" style="margin-bottom:22px;">
-        <h2>🛍️ Check Item Availability</h2>
-        <p style="color:rgba(255,255,255,0.55);font-size:0.88rem;margin-bottom:18px;">
-          Select a fashion item from the dropdown to see if it's available, how many units are in stock, and view sample photos.
-        </p>
-
-        <label style="color:rgba(255,255,255,0.65);font-size:0.85rem;margin-bottom:8px;display:block;">Select Item</label>
-        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-          <select id="si-item-select" onchange="siCheckItem()"
-            style="flex:1;min-width:200px;padding:12px 16px;margin-bottom:0;font-size:0.92rem;
-                   background:rgba(255,255,255,0.08);border:1px solid rgba(212,168,67,0.4);
-                   border-radius:10px;color:#fff;">
-            <option value="">— Choose an item —</option>
-          </select>
-          <button class="btn btn-gold" style="padding:12px 20px;font-size:0.85rem;" onclick="siLoadStock()">🔄 Refresh</button>
-        </div>
-
-        <!-- Feedback box — shown after selection -->
-        <div id="si-feedback"></div>
-      </div>
-
-      <!-- Sold Out Notice -->
-      <div id="si-soldout-box" class="card" style="display:none;border-color:rgba(255,80,80,0.3);">
-        <h2 style="color:#ff8a9a;">🔴 Currently Sold Out</h2>
-        <div id="si-soldout-list"></div>
-      </div>
-    `;
-    content.appendChild(div);
-  })();
-
-  // ── API base ──────────────────────────────────────────────────────────
-  function siBase() { return window.API_BASE || 'https://smartserve-smes.onrender.com'; }
-
-  // ── Load everything ───────────────────────────────────────────────────
-  function loadSmartItems() { siLoadStock(); }
-
-  // ── Fetch stock from server ───────────────────────────────────────────
-  window._siAllItems = [];
-
-  async function siLoadStock() {
-    const fb = document.getElementById('si-feedback');
-    if (fb) fb.innerHTML = '';
-    try {
-      const res  = await fetch(siBase() + '/smart-items/stock', { credentials:'include' });
-      const data = await res.json();
-      if (!data.success) throw new Error(data.message);
-      window._siAllItems = data.items;
-      // Populate the dropdown with real items from server
-      const sel = document.getElementById('si-item-select');
-      if (sel) {
-        sel.innerHTML = '<option value="">— Choose an item —</option>' +
-          data.items.map(i => '<option value="' + i.id + '">' + i.name + ' — KSh ' + i.price.toLocaleString() + '</option>').join('');
-      }
-    } catch(e) {
-      const sel = document.getElementById('si-item-select');
-      if (sel) sel.innerHTML = '<option value="">Could not load items</option>';
-    }
-  }
-
-  // ── Customer selects an item → show feedback ──────────────────────────
-  function siCheckItem() {
-    const sel  = document.getElementById('si-item-select');
-    const fb   = document.getElementById('si-feedback');
-    const id   = sel?.value;
-    if (!id || !fb) return;
-
-    const item = (window._siAllItems || []).find(i => String(i.id) === String(id));
-    if (!item) { fb.innerHTML = ''; return; }
-
-    const isOut = item.stock === 0;
-    const isLow = item.stock > 0 && item.stock <= 5;
-
-    // Sample thumbnails with selection
-    const thumbsHtml = item.samples && item.samples.length
-      ? '<div style="margin-top:16px;">' +
-        '<p style="font-size:0.85rem;color:rgba(255,255,255,0.6);margin-bottom:10px;">📸 <strong style="color:#fff;">Choose a style</strong> — tap a photo to select it:</p>' +
-        '<div style="display:flex;gap:8px;flex-wrap:wrap;" id="si-thumb-row">' +
-        item.samples.map((s, idx) =>
-          '<div onclick="siSelectSample(' + idx + ',\'' + siBase() + s.path + '\',\'' + s.description.replace(/'/g,"\\'") + '\')" ' +
-          'id="si-sthumb-' + idx + '" ' +
-          'style="cursor:pointer;border-radius:10px;overflow:hidden;border:2px solid rgba(255,255,255,0.15);transition:all 0.2s;width:80px;height:80px;">' +
-          '<img src="' + siBase() + s.path + '" title="' + s.description + '" ' +
-          'onerror="this.parentElement.style.display=\'none\'" ' +
-          'style="width:100%;height:100%;object-fit:cover;display:block;">' +
-          '</div>'
-        ).join('') +
-        '</div>' +
-        // Selected preview area
-        '<div id="si-selected-preview" style="display:none;margin-top:16px;padding:16px;background:rgba(212,168,67,0.08);border:1px solid rgba(212,168,67,0.3);border-radius:12px;">' +
-        '<p style="font-size:0.8rem;color:rgba(255,255,255,0.5);margin-bottom:8px;">✅ Selected style:</p>' +
-        '<div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;">' +
-        '<img id="si-selected-img" src="" style="width:120px;height:120px;object-fit:cover;border-radius:10px;border:2px solid rgba(212,168,67,0.4);">' +
-        '<div>' +
-        '<p id="si-selected-desc" style="color:#fff;font-size:0.9rem;font-weight:600;margin-bottom:6px;"></p>' +
-        '<p style="color:rgba(255,255,255,0.5);font-size:0.8rem;">This style has been noted. Proceed to the <strong style="color:var(--gold-light);">Measurements</strong> tab to submit your measurements for this item.</p>' +
-        '<button class="btn btn-gold" style="margin-top:10px;padding:8px 18px;font-size:0.82rem;" ' +
-        'onclick="showTab(\'submit-measurements\')">📏 Go to Measurements →</button>' +
-        '</div></div></div>' +
-        '</div>'
-      : '<p style="font-size:0.8rem;color:rgba(255,255,255,0.35);margin-top:12px;">No sample photos uploaded yet by the designer.</p>';
-
-    if (isOut) {
-      fb.innerHTML =
-        '<div style="background:rgba(255,80,80,0.1);border:1px solid rgba(255,80,80,0.35);border-radius:14px;padding:22px 24px;margin-top:16px;">' +
-        '<div style="font-size:1.8rem;margin-bottom:8px;">😔</div>' +
-        '<h3 style="color:#ff8a9a;margin-bottom:6px;">' + item.name + ' — Sold Out</h3>' +
-        '<p style="color:rgba(255,255,255,0.7);font-size:0.9rem;">This item is currently <strong style="color:#ff8a9a;">out of stock</strong>. ' +
-        'The designer has been notified and will restock soon.</p>' +
-        '<p style="color:rgba(255,255,255,0.45);font-size:0.82rem;margin-top:8px;">Last price: KSh ' + item.price.toLocaleString() + ' per unit</p>' +
-        '<div style="margin-top:14px;padding:10px 14px;background:rgba(255,255,255,0.05);border-radius:8px;font-size:0.82rem;color:rgba(255,255,255,0.5);">' +
-        '📬 You will be notified when <strong style="color:#fff;">' + item.name + '</strong> is back in stock.</div>' +
-        thumbsHtml + '</div>';
-    } else if (isLow) {
-      fb.innerHTML =
-        '<div style="background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.4);border-radius:14px;padding:22px 24px;margin-top:16px;">' +
-        '<div style="font-size:1.8rem;margin-bottom:8px;">⚠️</div>' +
-        '<h3 style="color:#fbbf24;margin-bottom:6px;">' + item.name + ' — Almost Gone!</h3>' +
-        '<p style="color:rgba(255,255,255,0.8);font-size:0.9rem;">Only <strong style="color:#fbbf24;">' + item.stock + ' unit(s)</strong> left in stock. Order soon before it sells out.</p>' +
-        '<p style="color:rgba(255,255,255,0.55);font-size:0.85rem;margin-top:6px;">Price: <strong style="color:var(--gold-light);">KSh ' + item.price.toLocaleString() + '</strong> per unit</p>' +
-        thumbsHtml + '</div>';
-    } else {
-      fb.innerHTML =
-        '<div style="background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.3);border-radius:14px;padding:22px 24px;margin-top:16px;">' +
-        '<div style="font-size:1.8rem;margin-bottom:8px;">✅</div>' +
-        '<h3 style="color:#4ade80;margin-bottom:6px;">' + item.name + ' — Available</h3>' +
-        '<p style="color:rgba(255,255,255,0.8);font-size:0.9rem;"><strong style="color:#4ade80;">' + item.stock + ' units</strong> are currently in stock and ready for order.</p>' +
-        '<p style="color:rgba(255,255,255,0.55);font-size:0.85rem;margin-top:6px;">Price: <strong style="color:var(--gold-light);">KSh ' + item.price.toLocaleString() + '</strong> per unit</p>' +
-        thumbsHtml + '</div>';
-    }
-  }
-
-  // ── Sample selection ──────────────────────────────────────────────────
-  function siSelectSample(idx, src, desc) {
-    // Highlight selected thumbnail
-    document.querySelectorAll('[id^="si-sthumb-"]').forEach(el => {
-      el.style.border = '2px solid rgba(255,255,255,0.15)';
-      el.style.transform = 'scale(1)';
-    });
-    const selected = document.getElementById('si-sthumb-' + idx);
-    if (selected) {
-      selected.style.border = '2px solid #d4a843';
-      selected.style.transform = 'scale(1.08)';
-      selected.style.boxShadow = '0 0 12px rgba(212,168,67,0.5)';
-    }
-    // Show preview
-    const preview = document.getElementById('si-selected-preview');
-    const img     = document.getElementById('si-selected-img');
-    const descEl  = document.getElementById('si-selected-desc');
-    if (preview && img && descEl) {
-      img.src       = src;
-      descEl.textContent = desc;
-      preview.style.display = 'block';
-    }
-    // Store selection in localStorage so measurements tab can reference it
-    localStorage.setItem('si_selected_style', JSON.stringify({ src, desc }));
-  }
-
-  // ── Sample modal (full-screen view) ──────────────────────────────────
-  function siOpenModal(src, desc) {
-    const old = document.getElementById('si-modal');
-    if (old) old.remove();
-    const m = document.createElement('div');
-    m.id = 'si-modal';
-    m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;cursor:pointer;';
-    m.innerHTML = '<img src="' + src + '" style="max-width:90vw;max-height:80vh;border-radius:14px;border:2px solid rgba(212,168,67,0.4);">' +
-      '<p style="color:rgba(255,255,255,0.7);font-size:0.9rem;">' + desc + '</p>' +
-      '<p style="color:rgba(255,255,255,0.3);font-size:0.76rem;">Click anywhere to close</p>';
-    m.onclick = () => m.remove();
-    document.body.appendChild(m);
-  }
-  </script>
+  <script src="smart-items.js"></script>
 </body>
+</html>
 </html>
