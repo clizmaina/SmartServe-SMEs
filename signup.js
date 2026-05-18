@@ -3,28 +3,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function getBase() { return (window.API_BASE) || "https://smartserve-smes.onrender.com"; }
 
-    // ── Elements ──────────────────────────────────────────────────────────────
-    const signupForm      = document.getElementById("signup-form");
-    const otpSection      = document.getElementById("otpSection");
-    const otpMessage      = document.getElementById("otpMessage");
-    const verifyOtpBtn    = document.getElementById("verifyOtpBtn");
-    const resendBtn       = document.getElementById("resendBtn");
-    const phoneSection    = document.getElementById("phoneSection");
-    const sendSmsOtpBtn   = document.getElementById("sendSmsOtpBtn");
-    const smsOtpSection   = document.getElementById("smsOtpSection");
-    const smsOtpMessage   = document.getElementById("smsOtpMessage");
-    const verifySmsOtpBtn = document.getElementById("verifySmsOtpBtn");
-    const resendSmsBtn    = document.getElementById("resendSmsBtn");
+    const signupForm   = document.getElementById("signup-form");
+    const otpSection   = document.getElementById("otpSection");
+    const otpMessage   = document.getElementById("otpMessage");
+    const verifyOtpBtn = document.getElementById("verifyOtpBtn");
+    const resendBtn    = document.getElementById("resendBtn");
+    const phoneSection = document.getElementById("phoneSection");
+    const saveBtn      = document.getElementById("saveDetailsBtn");
+    const saveMsg      = document.getElementById("saveDetailsMsg");
 
-    // Stores userId after email OTP verified (before phone step)
     let pendingUserId   = null;
     let pendingUserRole = null;
 
-    // ══════════════════════════════════════════════════════════════════════════
-    // STEP 1 — Send email OTP
-    // ══════════════════════════════════════════════════════════════════════════
+    // ── STEP 1: Send email OTP ────────────────────────────────────────────────
     signupForm.addEventListener("submit", async (e) => { e.preventDefault(); await sendEmailOtp(); });
-    resendBtn.addEventListener("click", async () => { await sendEmailOtp(); });
+    resendBtn.addEventListener("click",   async () => { await sendEmailOtp(); });
 
     async function sendEmailOtp() {
         const name     = document.getElementById("name").value.trim();
@@ -54,7 +47,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     document.getElementById("otpInput").value = data.otp;
                     otpMessage.innerHTML = `
                         <div style="background:#e8f5e9;border:2px solid #006600;border-radius:10px;padding:16px;text-align:center;">
-                            <div style="font-size:0.85rem;color:#555;margin-bottom:8px;">Your email verification code:</div>
+                            <div style="font-size:0.85rem;color:#555;margin-bottom:8px;">Your verification code:</div>
                             <div style="font-size:2rem;font-weight:bold;letter-spacing:8px;color:#006600;">${data.otp}</div>
                             <div style="font-size:0.78rem;color:#888;margin-top:8px;">Code pre-filled. Click "Verify Email Code" to continue.</div>
                         </div>`;
@@ -72,9 +65,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // ══════════════════════════════════════════════════════════════════════════
-    // STEP 2 — Verify email OTP → create account → show phone step
-    // ══════════════════════════════════════════════════════════════════════════
+    // ── STEP 2: Verify email OTP → show personal details form ────────────────
     verifyOtpBtn.addEventListener("click", async () => {
         const email = document.getElementById("email").value.trim();
         const otp   = document.getElementById("otpInput").value.trim();
@@ -96,12 +87,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 pendingUserRole = data.role;
 
                 if (data.requiresSubscription) {
-                    // Provider — go to subscription (skip phone step for now, add after payment)
+                    // Provider — go to subscription page
                     localStorage.setItem("pendingProviderId", data.userId);
                     localStorage.setItem("pendingProviderRole", data.role);
                     window.location.href = "provider-subscription.html";
                 } else {
-                    // Customer — show phone + ID step
+                    // Show personal details step
                     otpSection.classList.remove("visible");
                     phoneSection.classList.add("visible");
                 }
@@ -116,87 +107,38 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // ══════════════════════════════════════════════════════════════════════════
-    // STEP 3 — Send SMS OTP to phone number
-    // ══════════════════════════════════════════════════════════════════════════
-    sendSmsOtpBtn.addEventListener("click", async () => { await sendSmsOtp(); });
-    resendSmsBtn.addEventListener("click",  async () => { await sendSmsOtp(); });
-
-    async function sendSmsOtp() {
+    // ── STEP 3: Save phone + ID then redirect to login ────────────────────────
+    saveBtn.addEventListener("click", async () => {
         const phone = document.getElementById("phoneNumber").value.trim();
         const idNum = document.getElementById("idNumber").value.trim();
 
-        if (!phone) { alert("❌ Please enter your phone number."); return; }
-        if (!idNum)  { alert("❌ Please enter your ID / Passport number."); return; }
-        if (!/^(?:0[17]\d{8}|254[17]\d{8}|\+254[17]\d{8})$/.test(phone.replace(/\s/g,""))) {
-            alert("❌ Enter a valid Kenyan phone number (e.g. 0712345678).");
-            return;
-        }
         if (!pendingUserId) { alert("❌ Session expired. Please start signup again."); return; }
 
-        sendSmsOtpBtn.disabled = true; sendSmsOtpBtn.textContent = "Sending SMS…";
+        saveBtn.disabled = true; saveBtn.textContent = "Saving…";
+        saveMsg.style.color = "rgba(0,102,0,0.8)";
+        saveMsg.textContent = "Saving your details…";
 
         try {
-            const res  = await fetch(getBase() + "/send-phone-otp", {
+            const res  = await fetch(getBase() + "/save-personal-details", {
                 method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include",
                 body: JSON.stringify({ userId: pendingUserId, phone, idNumber: idNum })
             });
             const data = await res.json();
 
             if (data.success) {
-                smsOtpSection.classList.add("visible");
-                phoneSection.classList.remove("visible");
-
-                if (data.otp) {
-                    document.getElementById("smsOtpInput").value = data.otp;
-                    smsOtpMessage.innerHTML = `
-                        <div style="background:#e8f5e9;border:2px solid #006600;border-radius:10px;padding:16px;text-align:center;">
-                            <div style="font-size:0.85rem;color:#555;margin-bottom:8px;">Your phone verification code:</div>
-                            <div style="font-size:2rem;font-weight:bold;letter-spacing:8px;color:#006600;">${data.otp}</div>
-                            <div style="font-size:0.78rem;color:#888;margin-top:8px;">Code pre-filled. Click "Complete Registration" to finish.</div>
-                        </div>`;
-                } else {
-                    smsOtpMessage.innerHTML = `<div style="color:#006600;font-size:0.88rem;">📲 A 6-digit code was sent to <strong>${phone}</strong>. Enter it below.</div>`;
-                }
+                saveMsg.style.color = "#006600";
+                saveMsg.textContent = "✅ Details saved! Redirecting to login…";
+                setTimeout(() => { window.location.href = "signin.html"; }, 1500);
             } else {
-                alert("❌ " + data.message);
+                saveMsg.style.color = "red";
+                saveMsg.textContent = "❌ " + data.message;
+                saveBtn.disabled = false; saveBtn.textContent = "✅ Complete Registration";
             }
         } catch (err) {
             console.error(err);
-            alert("❌ Server error. Please try again.");
-        } finally {
-            sendSmsOtpBtn.disabled = false; sendSmsOtpBtn.textContent = "📲 Send SMS Verification Code";
-        }
-    }
-
-    // ══════════════════════════════════════════════════════════════════════════
-    // STEP 4 — Verify SMS OTP → complete registration
-    // ══════════════════════════════════════════════════════════════════════════
-    verifySmsOtpBtn.addEventListener("click", async () => {
-        const otp = document.getElementById("smsOtpInput").value.trim();
-        if (!otp || otp.length !== 6) { alert("❌ Please enter the 6-digit SMS code."); return; }
-        if (!pendingUserId) { alert("❌ Session expired. Please start signup again."); return; }
-
-        verifySmsOtpBtn.disabled = true; verifySmsOtpBtn.textContent = "Completing…";
-
-        try {
-            const res  = await fetch(getBase() + "/verify-phone-otp", {
-                method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include",
-                body: JSON.stringify({ userId: pendingUserId, otp })
-            });
-            const data = await res.json();
-
-            if (data.success) {
-                alert("✅ Registration complete! Welcome to SmartServe SMEs.");
-                window.location.href = "signin.html";
-            } else {
-                alert("❌ " + data.message);
-            }
-        } catch (err) {
-            console.error(err);
-            alert("❌ Server error. Please try again.");
-        } finally {
-            verifySmsOtpBtn.disabled = false; verifySmsOtpBtn.textContent = "✅ Complete Registration";
+            saveMsg.style.color = "red";
+            saveMsg.textContent = "❌ Server error. Please try again.";
+            saveBtn.disabled = false; saveBtn.textContent = "✅ Complete Registration";
         }
     });
 });

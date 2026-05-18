@@ -535,101 +535,26 @@ app.post("/signup", async (req, res) => {
     }
 });
 
-// ✅ STEP 3 — Send SMS OTP to phone number (after email verified)
-// In-memory phone OTP store: { userId: { otp, expiresAt, phone, idNumber } }
-const phoneOtpStore = {};
-
-app.post("/send-phone-otp", async (req, res) => {
+// ✅ Save personal details (phone + ID) after email verification
+app.post("/save-personal-details", async (req, res) => {
     const { userId, phone, idNumber } = req.body;
-    if (!userId || !phone || !idNumber) {
-        return res.status(400).json({ success: false, message: "❌ userId, phone and idNumber are required." });
+    if (!userId) return res.status(400).json({ success: false, message: "❌ userId is required." });
+
+    try {
+        // Normalize phone if provided
+        let normalizedPhone = (phone || "").replace(/\s+/g, "");
+        if (normalizedPhone.startsWith("0"))      normalizedPhone = "254" + normalizedPhone.slice(1);
+        else if (normalizedPhone.startsWith("+")) normalizedPhone = normalizedPhone.slice(1);
+
+        await db.promise().query(
+            "UPDATE users SET phone = ?, id_number = ? WHERE id = ?",
+            [normalizedPhone || null, idNumber?.trim() || null, userId]
+        );
+        res.json({ success: true, message: "✅ Personal details saved." });
+    } catch (err) {
+        console.error("❌ save-personal-details error:", err);
+        res.status(500).json({ success: false, message: "❌ Server error." });
     }
-
-    // Normalize phone
-    let normalizedPhone = phone.replace(/\s+/g, "");
-    if (normalizedPhone.startsWith("0"))       normalizedPhone = "254" + normalizedPhone.slice(1);
-    else if (normalizedPhone.startsWith("+"))  normalizedPhone = normalizedPhone.slice(1);
-
-    // Check user exists
-    const [users] = await db.promise().query("SELECT id FROM users WHERE id = ?", [userId]);
-    if (!users.length) return res.status(404).json({ success: false, message: "❌ User not found." });
-
-    // Save phone + ID to user record
-    await db.promise().query(
-        "UPDATE users SET phone = ?, id_number = ? WHERE id = ?",
-        [normalizedPhone, idNumber.trim(), userId]
-    );
-
-    // Generate 6-digit OTP
-    const otp       = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
-    phoneOtpStore[userId] = { otp, expiresAt, phone: normalizedPhone };
-
-    // Try to send SMS via Africa's Talking (if configured)
-    // If not configured, return OTP directly so signup still works
-    const atApiKey   = process.env.AT_API_KEY;
-    const atUsername = process.env.AT_USERNAME || "sandbox";
-
-    if (atApiKey && atApiKey !== "YOUR_AT_API_KEY") {
-        try {
-            const atRes = await axios.post(
-                "https://api.africastalking.com/version1/messaging",
-                new URLSearchParams({
-                    username: atUsername,
-                    to:       "+" + normalizedPhone,
-                    message:  `Your SmartServe SMEs verification code is: ${otp}. Valid for 10 minutes.`,
-                    from:     "SmartServe"
-                }),
-                {
-                    headers: {
-                        "apiKey":       atApiKey,
-                        "Content-Type": "application/x-www-form-urlencoded",
-                        "Accept":       "application/json"
-                    },
-                    timeout: 15000
-                }
-            );
-            console.log(`✅ SMS sent to +${normalizedPhone}`);
-            return res.json({ success: true, message: `✅ SMS code sent to your phone.` });
-        } catch (smsErr) {
-            console.error("❌ SMS send error:", smsErr.response?.data || smsErr.message);
-            // Fall through — return OTP directly
-        }
-    }
-
-    // SMS not configured or failed — return OTP on screen
-    console.log(`📱 Phone OTP for user ${userId}: ${otp}`);
-    res.json({
-        success: true,
-        message: "⚠️ SMS delivery unavailable. Your code is shown below.",
-        otp: otp
-    });
-});
-
-// ✅ STEP 4 — Verify phone OTP and mark phone as verified
-app.post("/verify-phone-otp", async (req, res) => {
-    const { userId, otp } = req.body;
-    if (!userId || !otp) {
-        return res.status(400).json({ success: false, message: "❌ userId and otp are required." });
-    }
-
-    const record = phoneOtpStore[userId];
-    if (!record) {
-        return res.status(400).json({ success: false, message: "❌ No OTP found. Please request a new one." });
-    }
-    if (Date.now() > record.expiresAt) {
-        delete phoneOtpStore[userId];
-        return res.status(400).json({ success: false, message: "❌ OTP has expired. Please request a new one." });
-    }
-    if (record.otp !== otp.trim()) {
-        return res.status(400).json({ success: false, message: "❌ Incorrect code. Please try again." });
-    }
-
-    // Mark phone as verified
-    delete phoneOtpStore[userId];
-    await db.promise().query("UPDATE users SET phone_verified = 1 WHERE id = ?", [userId]);
-
-    res.json({ success: true, message: "✅ Phone verified successfully! Your account is now complete." });
 });
 
 // ✅ USER LOGIN — matches on email + businessType so one email can have multiple business accounts

@@ -128,30 +128,21 @@
       <button type="button" id="resendBtn">Resend code</button>
     </div>
 
-    <!-- Step 3: Phone + ID verification -->
+    <!-- Step 3: Personal details (saved, no SMS) -->
     <div class="otp-section" id="phoneSection">
       <div style="background:#f0f9f0;border:1px solid #006600;border-radius:10px;padding:14px 16px;margin-bottom:18px;">
         <p style="color:#006600;font-size:0.88rem;font-weight:600;margin-bottom:4px;">✅ Email verified!</p>
-        <p style="color:#555;font-size:0.82rem;">Now add your personal details for account security.</p>
+        <p style="color:#555;font-size:0.82rem;">Add your personal details to complete your profile.</p>
       </div>
 
-      <label>📱 Phone Number (M-Pesa / WhatsApp)</label>
-      <input type="tel" id="phoneNumber" placeholder="e.g. 0712345678" required>
+      <label>📱 Phone Number</label>
+      <input type="tel" id="phoneNumber" placeholder="e.g. 0712345678">
 
       <label>🪪 National ID / Passport Number</label>
-      <input type="text" id="idNumber" placeholder="e.g. 12345678" required>
+      <input type="text" id="idNumber" placeholder="e.g. 12345678">
 
-      <button type="button" id="sendSmsOtpBtn" class="btn-primary">📲 Send SMS Verification Code</button>
-    </div>
-
-    <!-- Step 4: SMS OTP -->
-    <div class="otp-section" id="smsOtpSection">
-      <p id="smsOtpMessage"></p>
-      <label>Enter the 6-digit code sent to your phone:</label>
-      <input type="text" id="smsOtpInput" class="otp-input" maxlength="6" placeholder="000000">
-      <button type="button" id="verifySmsOtpBtn" class="btn-primary">✅ Complete Registration</button>
-      <br>
-      <button type="button" id="resendSmsBtn" style="background:none;border:none;color:var(--green);cursor:pointer;font-size:0.85rem;padding:0;margin-top:8px;text-decoration:underline;font-family:'Poppins',sans-serif;">Resend SMS code</button>
+      <button type="button" id="saveDetailsBtn" class="btn-primary">✅ Complete Registration</button>
+      <p id="saveDetailsMsg" style="margin-top:10px;font-size:0.85rem;"></p>
     </div>
 
     <div class="footer-link">
