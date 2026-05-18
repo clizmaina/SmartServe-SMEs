@@ -1401,7 +1401,7 @@ Always give practical, specific, actionable advice. When discussing measurements
             headers: {
               Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
               "Content-Type": "application/json",
-              "HTTP-Referer": "http://localhost:5501",
+              "HTTP-Referer": "https://smartserve-smes.onrender.com",
               "X-Title": "SmartServe SMEs Tailoring AI",
             },
             timeout: 30000, // 30s per model attempt

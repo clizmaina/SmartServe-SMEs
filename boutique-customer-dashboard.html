@@ -238,7 +238,7 @@
   </div>
 
   <script>
-    const BASE = 'https://smartserve-smes.onrender.com';
+    const BASE = window.API_BASE || 'https://smartserve-smes.onrender.com';
 
     (function() {
       if (!localStorage.getItem('user')) window.location.replace('business-select.html');
