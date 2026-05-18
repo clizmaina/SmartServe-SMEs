@@ -549,6 +549,9 @@
       <a onclick="showTab('inventory')">
         <span class="nav-icon">📋</span> <span data-i18n="d.nav.inventory">Inventory</span>
       </a>
+      <a onclick="showTab('stock-manager')">
+        <span class="nav-icon">📦</span> Stock Manager
+      </a>
       <a onclick="logoutDesigner()" class="logout-btn">
         <span class="nav-icon">🚪</span> <span data-i18n="d.nav.logout">Logout</span>
       </a>
@@ -758,6 +761,263 @@
     </div><!-- /inventory -->
 
   </div><!-- /content -->
+
+  <!-- ══════════════════════════════════════════════════════
+       STOCK MANAGER — Designer Tab
+  ══════════════════════════════════════════════════════ -->
+  <style>
+    .sm-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(290px,1fr)); gap:18px; }
+    .sm-card { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:16px; padding:20px; }
+    .sm-card.out { border-color:rgba(255,80,80,0.4); }
+    .sm-card.low { border-color:rgba(251,191,36,0.4); }
+    .sm-card.ok  { border-color:rgba(74,222,128,0.25); }
+    .sm-name  { font-size:1rem; font-weight:600; color:#fff; margin-bottom:3px; }
+    .sm-price { font-size:0.82rem; color:var(--gold-light); margin-bottom:12px; }
+    .sm-row   { display:flex; align-items:center; gap:8px; margin-bottom:10px; flex-wrap:wrap; }
+    .sm-row input[type="number"] { width:80px; padding:7px 10px; margin-bottom:0; background:rgba(255,255,255,0.1); border:1px solid rgba(212,168,67,0.3); border-radius:8px; color:#fff; font-size:0.88rem; text-align:center; }
+    .sm-row button, .sm-upload-btn { padding:7px 14px; font-size:0.8rem; border-radius:8px; border:none; cursor:pointer; font-weight:600; transition:all 0.2s; }
+    .sm-row button { background:linear-gradient(135deg,var(--gold),var(--gold-light)); color:var(--deep-rose); }
+    .sm-upload-btn { background:rgba(74,222,128,0.15); border:1px solid rgba(74,222,128,0.3); color:#4ade80; }
+    .sm-upload-btn:hover { background:rgba(74,222,128,0.25); }
+    .sm-samples-sec { margin-top:12px; border-top:1px solid rgba(255,255,255,0.08); padding-top:12px; }
+    .sm-samples-title { font-size:0.78rem; color:rgba(255,255,255,0.45); margin-bottom:8px; }
+    .sm-thumbs { display:flex; gap:5px; flex-wrap:wrap; margin-bottom:8px; }
+    .sm-thumb { width:50px; height:50px; border-radius:7px; object-fit:cover; border:1px solid rgba(212,168,67,0.3); cursor:pointer; transition:transform 0.2s; }
+    .sm-thumb:hover { transform:scale(1.1); }
+    .sm-upload-row { display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+    .sm-upload-row input[type="file"] { flex:1; padding:6px 8px; margin-bottom:0; font-size:0.78rem; background:rgba(255,255,255,0.07); border:1px dashed rgba(212,168,67,0.3); }
+    .sm-upload-row input[type="text"] { flex:1; padding:6px 8px; margin-bottom:0; font-size:0.78rem; background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.15); }
+    .sm-msg { font-size:0.78rem; margin-top:6px; min-height:16px; }
+    .sm-alert-out { background:rgba(255,80,80,0.1); border:1px solid rgba(255,80,80,0.3); color:#ff8a9a; border-radius:10px; padding:12px 16px; margin-bottom:10px; font-size:0.86rem; display:flex; gap:10px; align-items:flex-start; }
+    .sm-alert-low { background:rgba(251,191,36,0.08); border:1px solid rgba(251,191,36,0.3); color:#fbbf24; border-radius:10px; padding:12px 16px; margin-bottom:10px; font-size:0.86rem; display:flex; gap:10px; align-items:flex-start; }
+  </style>
+
+  <script>
+  // Inject Stock Manager tab into .content
+  (function() {
+    const content = document.querySelector('.content');
+    if (!content) return;
+    const div = document.createElement('div');
+    div.id = 'stock-manager';
+    div.className = 'tab-content';
+    div.innerHTML = `
+      <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+        <div>
+          <h1>📦 Stock Manager</h1>
+          <p>Manage fashion item stock levels and upload samples for customers</p>
+        </div>
+        <button class="btn btn-gold" style="padding:10px 20px;" onclick="smLoad()">🔄 Refresh</button>
+      </div>
+      <div id="sm-alerts" style="margin-bottom:20px;"></div>
+      <div id="sm-grid" class="sm-grid"><p style="color:rgba(255,255,255,0.4);">Loading…</p></div>
+
+      <!-- Sales Trends section -->
+      <div class="card" style="margin-top:28px;margin-bottom:22px;">
+        <h2>📈 Sales Trends — Last 6 Months</h2>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center;">
+          <button class="btn btn-gold" style="padding:8px 16px;font-size:0.82rem;" onclick="smLoadTrends()">🔄 Refresh</button>
+          <select id="sm-trend-filter" onchange="smFilterTrends()" style="width:auto;padding:8px 14px;margin-bottom:0;font-size:0.82rem;">
+            <option value="all">All Items</option>
+          </select>
+        </div>
+        <div id="sm-trends-chart"><p style="color:rgba(255,255,255,0.4);">Loading…</p></div>
+      </div>
+
+      <!-- Top Performers -->
+      <div class="card">
+        <h2>🏆 Top Selling Items</h2>
+        <div id="sm-top-grid" class="si-top-grid"><p style="color:rgba(255,255,255,0.4);">Loading…</p></div>
+      </div>
+    `;
+    content.appendChild(div);
+  })();
+
+  function smBase() { return window.API_BASE || 'https://smartserve-smes.onrender.com'; }
+
+  // ── Load stock manager ────────────────────────────────────────────────
+  function smLoad() { smLoadAlerts(); smLoadGrid(); smLoadTrends(); }
+
+  async function smLoadAlerts() {
+    const box = document.getElementById('sm-alerts');
+    if (!box) return;
+    try {
+      const res  = await fetch(smBase() + '/smart-items/alerts', { credentials:'include' });
+      const data = await res.json();
+      if (!data.success || !data.alerts.length) {
+        box.innerHTML = '<div style="padding:12px 16px;background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.2);border-radius:10px;color:#4ade80;font-size:0.86rem;">✅ All items are well stocked.</div>';
+        return;
+      }
+      box.innerHTML = data.alerts.map(a =>
+        '<div class="' + (a.type==='OUT_OF_STOCK'?'sm-alert-out':'sm-alert-low') + '">' +
+        '<span style="font-size:1.3rem;">' + (a.type==='OUT_OF_STOCK'?'🚨':'⚠️') + '</span>' +
+        '<div>' + a.message + '</div></div>'
+      ).join('');
+    } catch(e) { box.innerHTML = '<p style="color:#ff8a9a;font-size:0.84rem;">Could not load alerts.</p>'; }
+  }
+
+  async function smLoadGrid() {
+    const grid = document.getElementById('sm-grid');
+    if (!grid) return;
+    grid.innerHTML = '<p style="color:rgba(255,255,255,0.4);">Loading…</p>';
+    try {
+      const res  = await fetch(smBase() + '/smart-items/stock', { credentials:'include' });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.message);
+      smRenderGrid(data.items);
+    } catch(e) { grid.innerHTML = '<p style="color:#ff8a9a;">❌ ' + e.message + '</p>'; }
+  }
+
+  function smRenderGrid(items) {
+    const grid = document.getElementById('sm-grid');
+    if (!grid) return;
+    grid.innerHTML = items.map(item => {
+      const isOut = item.stock === 0;
+      const isLow = item.stock > 0 && item.stock <= 5;
+      const cls   = isOut ? 'out' : isLow ? 'low' : 'ok';
+      const sc    = isOut ? '#ff8a9a' : isLow ? '#fbbf24' : '#4ade80';
+      const st    = isOut ? 'OUT OF STOCK' : isLow ? 'LOW — ' + item.stock + ' left' : item.stock + ' in stock';
+      const thumbs = item.samples.length
+        ? item.samples.map(s =>
+            '<img class="sm-thumb" src="' + smBase() + s.path + '" title="' + s.description + '" onerror="this.style.display=\'none\'">'
+          ).join('')
+        : '<span style="font-size:0.76rem;color:rgba(255,255,255,0.3);">No samples yet</span>';
+      const uploadRow = item.samples.length < 10
+        ? '<div class="sm-upload-row">' +
+          '<input type="file" id="smf-' + item.id + '" accept="image/*">' +
+          '<input type="text" id="smd-' + item.id + '" placeholder="Description (optional)">' +
+          '<button class="sm-upload-btn" onclick="smUpload(' + item.id + ')">📤 Upload</button>' +
+          '</div><p class="sm-msg" id="smum-' + item.id + '"></p>'
+        : '<p style="font-size:0.76rem;color:#fbbf24;">Max 10 samples reached.</p>';
+      return '<div class="sm-card ' + cls + '" id="smc-' + item.id + '">' +
+        '<div class="sm-name">' + item.name + '</div>' +
+        '<div class="sm-price">KSh ' + item.price.toLocaleString() + ' per unit</div>' +
+        '<div class="sm-row"><span style="font-size:0.8rem;color:' + sc + ';font-weight:600;">● ' + st + '</span></div>' +
+        '<div class="sm-row">' +
+        '<input type="number" id="sms-' + item.id + '" value="' + item.stock + '" min="0" max="9999">' +
+        '<button onclick="smUpdateStock(' + item.id + ')">💾 Update</button>' +
+        '</div>' +
+        '<p class="sm-msg" id="smm-' + item.id + '"></p>' +
+        '<div class="sm-samples-sec">' +
+        '<div class="sm-samples-title">📸 Samples (' + item.samples.length + '/10)</div>' +
+        '<div class="sm-thumbs">' + thumbs + '</div>' +
+        uploadRow +
+        '</div></div>';
+    }).join('');
+  }
+
+  async function smUpdateStock(id) {
+    const inp = document.getElementById('sms-' + id);
+    const msg = document.getElementById('smm-' + id);
+    const qty = parseInt(inp?.value);
+    if (isNaN(qty) || qty < 0) { msg.style.color='#ff8a9a'; msg.textContent='❌ Enter valid quantity.'; return; }
+    msg.style.color='rgba(212,168,67,0.7)'; msg.textContent='Saving…';
+    try {
+      const res  = await fetch(smBase() + '/smart-items/stock/' + id, {
+        method:'POST', headers:{'Content-Type':'application/json'}, credentials:'include',
+        body: JSON.stringify({ stock: qty })
+      });
+      const data = await res.json();
+      msg.style.color = data.success ? '#4ade80' : '#ff8a9a';
+      msg.textContent = data.message;
+      if (data.success) smLoadAlerts();
+    } catch(e) { msg.style.color='#ff8a9a'; msg.textContent='❌ Server error.'; }
+  }
+
+  async function smUpload(id) {
+    const fi  = document.getElementById('smf-' + id);
+    const di  = document.getElementById('smd-' + id);
+    const msg = document.getElementById('smum-' + id);
+    if (!fi?.files.length) { msg.style.color='#ff8a9a'; msg.textContent='❌ Select an image.'; return; }
+    msg.style.color='rgba(212,168,67,0.7)'; msg.textContent='Uploading…';
+    const fd = new FormData();
+    fd.append('image', fi.files[0]);
+    fd.append('description', di?.value || '');
+    try {
+      const res  = await fetch(smBase() + '/smart-items/samples/' + id, { method:'POST', body:fd, credentials:'include' });
+      const data = await res.json();
+      msg.style.color = data.success ? '#4ade80' : '#ff8a9a';
+      msg.textContent = data.message;
+      if (data.success) { fi.value=''; if(di) di.value=''; setTimeout(smLoadGrid, 600); }
+    } catch(e) { msg.style.color='#ff8a9a'; msg.textContent='❌ Upload failed.'; }
+  }
+
+  // ── Trends (reuse si* renderers from customer side if available) ──────
+  window._smTrends = null;
+  async function smLoadTrends() {
+    const chart = document.getElementById('sm-trends-chart');
+    if (!chart) return;
+    chart.innerHTML = '<p style="color:rgba(255,255,255,0.4);">Loading…</p>';
+    try {
+      const res  = await fetch(smBase() + '/smart-items/trends', { credentials:'include' });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.message);
+      window._smTrends = data.trends;
+      const f = document.getElementById('sm-trend-filter');
+      if (f) f.innerHTML = '<option value="all">All Items</option>' +
+        data.trends.map(t => '<option value="' + t.name + '">' + t.name + '</option>').join('');
+      smRenderTrends(data.trends);
+      smRenderTop(data.trends);
+    } catch(e) { chart.innerHTML = '<p style="color:#ff8a9a;">❌ ' + e.message + '</p>'; }
+  }
+
+  function smFilterTrends() {
+    if (!window._smTrends) return;
+    const v = document.getElementById('sm-trend-filter')?.value || 'all';
+    smRenderTrends(v === 'all' ? window._smTrends : window._smTrends.filter(t => t.name === v));
+  }
+
+  function smRenderTrends(trends) {
+    const chart = document.getElementById('sm-trends-chart');
+    if (!chart) return;
+    const maxU = Math.max(...trends.flatMap(t => t.monthly.map(m => m.units_sold)), 1);
+    const cols = ['#d4a843','#4ade80','#60a5fa','#f472b6','#a78bfa'];
+    chart.innerHTML = trends.map((item, idx) => {
+      const col  = cols[idx % cols.length];
+      const tot  = item.monthly.reduce((s,m)=>s+m.units_sold,0);
+      const rev  = item.monthly.reduce((s,m)=>s+m.revenue,0);
+      const last = item.monthly[item.monthly.length-1]?.units_sold || 0;
+      const prev = item.monthly[item.monthly.length-2]?.units_sold || last;
+      const arr  = last > prev ? '↑' : last < prev ? '↓' : '→';
+      const ac   = last > prev ? '#4ade80' : last < prev ? '#ff8a9a' : '#aaa';
+      const rows = item.monthly.map(m => {
+        const pct = Math.round((m.units_sold / maxU) * 100);
+        return '<div class="si-trend-row">' +
+          '<span class="si-trend-month">' + m.month + '</span>' +
+          '<div class="si-trend-bar-wrap"><div class="si-trend-bar-fill" style="width:' + pct + '%;background:' + col + ';"></div></div>' +
+          '<span class="si-trend-units">' + m.units_sold + ' units</span>' +
+          '<span class="si-trend-rev">KSh ' + m.revenue.toLocaleString() + '</span></div>';
+      }).join('');
+      return '<div class="si-trend-item">' +
+        '<div class="si-trend-name">' + item.name + ' <span style="color:' + ac + ';">' + arr + '</span>' +
+        '<span style="font-size:0.76rem;color:rgba(255,255,255,0.35);font-weight:400;margin-left:auto;">' + tot + ' units · KSh ' + rev.toLocaleString() + '</span></div>' +
+        rows + '</div>';
+    }).join('');
+  }
+
+  function smRenderTop(trends) {
+    const box = document.getElementById('sm-top-grid');
+    if (!box) return;
+    const ranked = [...trends].sort((a,b) =>
+      b.monthly.reduce((s,m)=>s+m.units_sold,0) - a.monthly.reduce((s,m)=>s+m.units_sold,0)
+    );
+    const medals = ['🥇','🥈','🥉','4️⃣','5️⃣'];
+    box.innerHTML = ranked.map((item,i) => {
+      const tot = item.monthly.reduce((s,m)=>s+m.units_sold,0);
+      const rev = item.monthly.reduce((s,m)=>s+m.revenue,0);
+      return '<div class="si-top-card"><span class="si-top-medal">' + medals[i] + '</span>' +
+        '<div class="si-top-name">' + item.name + '</div>' +
+        '<div class="si-top-units">' + tot + ' units sold</div>' +
+        '<div class="si-top-rev">KSh ' + rev.toLocaleString() + '</div></div>';
+    }).join('');
+  }
+
+  // ── Hook showTab ──────────────────────────────────────────────────────
+  const _smOrigShow = window.showTab;
+  window.showTab = function(tabId) {
+    if (_smOrigShow) _smOrigShow(tabId);
+    if (tabId === 'stock-manager') smLoad();
+  };
+  </script>
   <script src="lang.js"></script>
 </body>
 </html>

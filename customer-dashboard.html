@@ -490,6 +490,9 @@
       <a onclick="showTab('delivery')">
         <span class="nav-icon">🚚</span> <span data-i18n="c.nav.delivery">Delivery</span>
       </a>
+      <a onclick="showTab('smart-items')">
+        <span class="nav-icon">📦</span> Smart Items Stocked
+      </a>
       <a onclick="logoutUser()" class="logout-btn">
         <span class="nav-icon">🚪</span> <span data-i18n="d.nav.logout">Logout</span>
       </a>
@@ -863,6 +866,7 @@
         const designerId = document.getElementById('designerSelect')?.value;
         if (designerId) loadCurrentDeliveryPref(designerId);
       }
+      if (tabId === 'smart-items') loadSmartItems();
     };
 
     // ── Quick-fill AI question chips ──
@@ -891,5 +895,194 @@
     });
   </script>
   <script src="lang.js"></script>
+
+  <!-- ══════════════════════════════════════════════════════
+       SMART ITEMS STOCKED — Customer Tab
+  ══════════════════════════════════════════════════════ -->
+  <style>
+    /* ── Smart Items styles ── */
+    .si-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:16px; }
+    .si-card {
+      background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1);
+      border-radius:16px; padding:20px; transition:all 0.25s;
+    }
+    .si-card:hover { transform:translateY(-3px); box-shadow:0 12px 30px rgba(0,0,0,0.4); }
+    .si-card.in-stock  { border-color:rgba(74,222,128,0.3); }
+    .si-card.low-stock { border-color:rgba(251,191,36,0.4); }
+    .si-card.sold-out  { border-color:rgba(255,80,80,0.35); opacity:0.85; }
+    .si-badge { display:inline-block; padding:3px 12px; border-radius:20px; font-size:0.7rem; font-weight:700; text-transform:uppercase; margin-bottom:10px; }
+    .si-badge.in  { background:rgba(74,222,128,0.15); color:#4ade80; border:1px solid rgba(74,222,128,0.3); }
+    .si-badge.low { background:rgba(251,191,36,0.15); color:#fbbf24; border:1px solid rgba(251,191,36,0.3); }
+    .si-badge.out { background:rgba(255,80,80,0.15);  color:#ff8a9a; border:1px solid rgba(255,80,80,0.3); }
+    .si-name  { font-size:1.05rem; font-weight:600; color:#fff; margin-bottom:4px; }
+    .si-price { font-size:0.85rem; color:var(--gold-light); margin-bottom:10px; }
+    .si-bar-wrap { background:rgba(255,255,255,0.08); border-radius:5px; height:6px; margin:8px 0; overflow:hidden; }
+    .si-bar-fill { height:100%; border-radius:5px; transition:width 0.6s ease; }
+    .si-count { font-size:0.8rem; color:rgba(255,255,255,0.5); }
+    .si-samples { display:flex; gap:5px; flex-wrap:wrap; margin-top:10px; }
+    .si-thumb { width:48px; height:48px; border-radius:7px; object-fit:cover; border:1px solid rgba(212,168,67,0.3); cursor:pointer; transition:transform 0.2s; }
+    .si-thumb:hover { transform:scale(1.12); }
+    .si-soldout-box { background:rgba(255,80,80,0.06); border:1px solid rgba(255,80,80,0.2); border-radius:10px; padding:12px 16px; margin-bottom:10px; display:flex; align-items:center; gap:12px; font-size:0.87rem; color:rgba(255,255,255,0.8); }
+    .si-trend-item { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:14px 18px; margin-bottom:12px; }
+    .si-trend-name { font-size:0.92rem; font-weight:600; color:var(--gold-light); margin-bottom:10px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+    .si-trend-row { display:flex; align-items:center; gap:8px; margin-bottom:5px; font-size:0.8rem; }
+    .si-trend-month { width:30px; color:rgba(255,255,255,0.4); text-align:right; flex-shrink:0; }
+    .si-trend-bar-wrap { flex:1; background:rgba(255,255,255,0.07); border-radius:4px; height:13px; overflow:hidden; }
+    .si-trend-bar-fill { height:100%; border-radius:4px; transition:width 0.7s ease; }
+    .si-trend-units { width:58px; text-align:right; color:rgba(255,255,255,0.6); flex-shrink:0; }
+    .si-trend-rev { width:90px; text-align:right; color:rgba(212,168,67,0.65); flex-shrink:0; font-size:0.76rem; }
+    .si-top-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:12px; }
+    .si-top-card { background:rgba(255,255,255,0.05); border:1px solid rgba(212,168,67,0.2); border-radius:13px; padding:16px; text-align:center; }
+    .si-top-medal { font-size:1.8rem; display:block; margin-bottom:5px; }
+    .si-top-name  { font-size:0.9rem; font-weight:600; color:#fff; margin-bottom:3px; }
+    .si-top-units { font-size:0.78rem; color:rgba(255,255,255,0.5); }
+    .si-top-rev   { font-size:0.82rem; color:var(--gold-light); margin-top:3px; }
+  </style>
+
+  <!-- Smart Items Stocked TAB (injected into .content) -->
+  <script>
+  // Inject the tab into .content before the inline script block
+  (function() {
+    const content = document.querySelector('.content');
+    if (!content) return;
+    const div = document.createElement('div');
+    div.id = 'smart-items';
+    div.className = 'tab-content';
+    div.innerHTML = `
+      <div class="page-header">
+        <h1>📦 Smart Items Stocked</h1>
+        <p>Choose an item below to check availability from your designer</p>
+      </div>
+
+      <!-- Item selector card -->
+      <div class="card" style="margin-bottom:22px;">
+        <h2>🛍️ Check Item Availability</h2>
+        <p style="color:rgba(255,255,255,0.55);font-size:0.88rem;margin-bottom:18px;">
+          Select a fashion item from the dropdown to see if it's available, how many units are in stock, and view sample photos.
+        </p>
+
+        <label style="color:rgba(255,255,255,0.65);font-size:0.85rem;margin-bottom:8px;display:block;">Select Item</label>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <select id="si-item-select" onchange="siCheckItem()"
+            style="flex:1;min-width:200px;padding:12px 16px;margin-bottom:0;font-size:0.92rem;
+                   background:rgba(255,255,255,0.08);border:1px solid rgba(212,168,67,0.4);
+                   border-radius:10px;color:#fff;">
+            <option value="">— Choose an item —</option>
+          </select>
+          <button class="btn btn-gold" style="padding:12px 20px;font-size:0.85rem;" onclick="siLoadStock()">🔄 Refresh</button>
+        </div>
+
+        <!-- Feedback box — shown after selection -->
+        <div id="si-feedback"></div>
+      </div>
+
+      <!-- Sold Out Notice -->
+      <div id="si-soldout-box" class="card" style="display:none;border-color:rgba(255,80,80,0.3);">
+        <h2 style="color:#ff8a9a;">🔴 Currently Sold Out</h2>
+        <div id="si-soldout-list"></div>
+      </div>
+    `;
+    content.appendChild(div);
+  })();
+
+  // ── API base ──────────────────────────────────────────────────────────
+  function siBase() { return window.API_BASE || 'https://smartserve-smes.onrender.com'; }
+
+  // ── Load everything ───────────────────────────────────────────────────
+  function loadSmartItems() { siLoadStock(); }
+
+  // ── Fetch stock from server ───────────────────────────────────────────
+  window._siAllItems = [];
+
+  async function siLoadStock() {
+    const fb = document.getElementById('si-feedback');
+    if (fb) fb.innerHTML = '';
+    try {
+      const res  = await fetch(siBase() + '/smart-items/stock', { credentials:'include' });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.message);
+      window._siAllItems = data.items;
+      // Populate the dropdown with real items from server
+      const sel = document.getElementById('si-item-select');
+      if (sel) {
+        sel.innerHTML = '<option value="">— Choose an item —</option>' +
+          data.items.map(i => '<option value="' + i.id + '">' + i.name + ' — KSh ' + i.price.toLocaleString() + '</option>').join('');
+      }
+    } catch(e) {
+      const sel = document.getElementById('si-item-select');
+      if (sel) sel.innerHTML = '<option value="">Could not load items</option>';
+    }
+  }
+
+  // ── Customer selects an item → show feedback ──────────────────────────
+  function siCheckItem() {
+    const sel  = document.getElementById('si-item-select');
+    const fb   = document.getElementById('si-feedback');
+    const id   = sel?.value;
+    if (!id || !fb) return;
+
+    const item = (window._siAllItems || []).find(i => String(i.id) === String(id));
+    if (!item) { fb.innerHTML = ''; return; }
+
+    const isOut = item.stock === 0;
+    const isLow = item.stock > 0 && item.stock <= 5;
+
+    // Sample thumbnails
+    const thumbsHtml = item.samples && item.samples.length
+      ? '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:12px;">' +
+        item.samples.slice(0,6).map(s =>
+          '<img src="' + siBase() + s.path + '" title="' + s.description + '" ' +
+          'onclick="siOpenModal(\'' + siBase() + s.path + '\',\'' + s.description.replace(/'/g,"\\'") + '\')" ' +
+          'onerror="this.style.display:none" ' +
+          'style="width:56px;height:56px;border-radius:8px;object-fit:cover;border:1px solid rgba(212,168,67,0.3);cursor:pointer;">'
+        ).join('') +
+        (item.samples.length > 6 ? '<span style="font-size:0.76rem;color:rgba(255,255,255,0.35);align-self:center;">+' + (item.samples.length-6) + ' more</span>' : '') +
+        '</div>'
+      : '<p style="font-size:0.8rem;color:rgba(255,255,255,0.35);margin-top:10px;">No sample photos uploaded yet.</p>';
+
+    if (isOut) {
+      fb.innerHTML =
+        '<div style="background:rgba(255,80,80,0.1);border:1px solid rgba(255,80,80,0.35);border-radius:14px;padding:22px 24px;margin-top:16px;">' +
+        '<div style="font-size:1.8rem;margin-bottom:8px;">😔</div>' +
+        '<h3 style="color:#ff8a9a;margin-bottom:6px;">' + item.name + ' — Sold Out</h3>' +
+        '<p style="color:rgba(255,255,255,0.7);font-size:0.9rem;">This item is currently <strong style="color:#ff8a9a;">out of stock</strong>. ' +
+        'The designer has been notified and will restock soon.</p>' +
+        '<p style="color:rgba(255,255,255,0.45);font-size:0.82rem;margin-top:8px;">Last price: KSh ' + item.price.toLocaleString() + ' per unit</p>' +
+        '<div style="margin-top:14px;padding:10px 14px;background:rgba(255,255,255,0.05);border-radius:8px;font-size:0.82rem;color:rgba(255,255,255,0.5);">' +
+        '📬 You will be notified when <strong style="color:#fff;">' + item.name + '</strong> is back in stock.</div>' +
+        thumbsHtml + '</div>';
+    } else if (isLow) {
+      fb.innerHTML =
+        '<div style="background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.4);border-radius:14px;padding:22px 24px;margin-top:16px;">' +
+        '<div style="font-size:1.8rem;margin-bottom:8px;">⚠️</div>' +
+        '<h3 style="color:#fbbf24;margin-bottom:6px;">' + item.name + ' — Almost Gone!</h3>' +
+        '<p style="color:rgba(255,255,255,0.8);font-size:0.9rem;">Only <strong style="color:#fbbf24;">' + item.stock + ' unit(s)</strong> left in stock. Order soon before it sells out.</p>' +
+        '<p style="color:rgba(255,255,255,0.55);font-size:0.85rem;margin-top:6px;">Price: <strong style="color:var(--gold-light);">KSh ' + item.price.toLocaleString() + '</strong> per unit</p>' +
+        thumbsHtml + '</div>';
+    } else {
+      fb.innerHTML =
+        '<div style="background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.3);border-radius:14px;padding:22px 24px;margin-top:16px;">' +
+        '<div style="font-size:1.8rem;margin-bottom:8px;">✅</div>' +
+        '<h3 style="color:#4ade80;margin-bottom:6px;">' + item.name + ' — Available</h3>' +
+        '<p style="color:rgba(255,255,255,0.8);font-size:0.9rem;"><strong style="color:#4ade80;">' + item.stock + ' units</strong> are currently in stock and ready for order.</p>' +
+        '<p style="color:rgba(255,255,255,0.55);font-size:0.85rem;margin-top:6px;">Price: <strong style="color:var(--gold-light);">KSh ' + item.price.toLocaleString() + '</strong> per unit</p>' +
+        thumbsHtml + '</div>';
+    }
+  }
+
+  // ── Sample modal ──────────────────────────────────────────────────────
+  function siOpenModal(src, desc) {
+    const old = document.getElementById('si-modal');
+    if (old) old.remove();
+    const m = document.createElement('div');
+    m.id = 'si-modal';
+    m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;cursor:pointer;';
+    m.innerHTML = '<img src="' + src + '" style="max-width:90vw;max-height:80vh;border-radius:14px;border:2px solid rgba(212,168,67,0.4);">' +
+      '<p style="color:rgba(255,255,255,0.7);font-size:0.9rem;">' + desc + '</p>' +
+      '<p style="color:rgba(255,255,255,0.3);font-size:0.76rem;">Click anywhere to close</p>';
+    m.onclick = () => m.remove();
+    document.body.appendChild(m);
+  }
+  </script>
 </body>
 </html>
