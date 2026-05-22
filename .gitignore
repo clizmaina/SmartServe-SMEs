@@ -1,5 +1,38 @@
 node_modules/
+npm-debug.log
+yarn-error.log
+
+# VS Code
+.vscode/
+
+# Environment
 .env
+.env.local
+
+# Database
 database.db
-uploads/
+
+# Build outputs
+dist/
+build/
+
+# Uploaded user files (keep out of repo)
+/uploads/
+/images/
+
+# Temp files
 *.tmp
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.pyc
+
+# Log files
+*.log
+
+# IDE
+.idea/
