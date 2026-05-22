@@ -90,8 +90,8 @@ if (process.env.MYSQL_PUBLIC_URL) {
 } else {
     dbConfig = {
         host:     process.env.DB_HOST     || "localhost",
-        user:     process.env.DB_USER     || "smartstitsch",
-        password: process.env.DB_PASSWORD || "smart123456",
+        user:     process.env.DB_USER     || "root",
+        password: process.env.DB_PASSWORD !== undefined ? process.env.DB_PASSWORD : "",
         database: process.env.DB_NAME     || "smartstitchtech",
         port:     parseInt(process.env.DB_PORT || "3306"),
         ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
