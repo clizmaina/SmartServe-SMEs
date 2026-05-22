@@ -651,8 +651,6 @@
           ✉️ Send Message
         </button>
       </div>
-      <script src="config.js"></script>
-      <script src="designer-dashboard.js"></script>
     </div>
 
     <!-- Customer Delivery Info -->
@@ -712,7 +710,7 @@
       </div>
 
       <div class="inv-section" id="section-customers">
-        <div class="inv-section-title" data-i18n="d.inv.sec.customers">👥 Customers</div>
+        <div class="inv-section-title" data-i18n="d.inv.sec.customers">👥 Customers <span class="inv-count" id="count-customers">(0)</span></div>
         <div class="inv-table-wrap"><table>
           <thead><tr><th>#</th><th data-i18n="d.tbl.name">Name</th><th data-i18n="d.tbl.email">Email</th></tr></thead>
           <tbody id="tbl-customers"></tbody>
@@ -720,7 +718,7 @@
       </div>
 
       <div class="inv-section" id="section-designs">
-        <div class="inv-section-title" data-i18n="d.inv.sec.designs">🎨 Uploaded Designs</div>
+        <div class="inv-section-title" data-i18n="d.inv.sec.designs">🎨 Uploaded Designs <span class="inv-count" id="count-designs">(0)</span></div>
         <div class="inv-table-wrap"><table>
           <thead><tr><th>#</th><th data-i18n="d.tbl.preview">Preview</th><th data-i18n="d.tbl.customer">Customer</th><th data-i18n="d.tbl.uploaded">Uploaded</th></tr></thead>
           <tbody id="tbl-designs"></tbody>
@@ -728,7 +726,7 @@
       </div>
 
       <div class="inv-section" id="section-measurements">
-        <div class="inv-section-title" data-i18n="d.inv.sec.meas">📏 Measurements</div>
+        <div class="inv-section-title" data-i18n="d.inv.sec.meas">📏 Measurements <span class="inv-count" id="count-measurements">(0)</span></div>
         <div class="inv-table-wrap"><table>
           <thead><tr><th>#</th><th data-i18n="d.tbl.customer">Customer</th><th data-i18n="d.tbl.garment">Garment</th><th data-i18n="d.tbl.keymeas">Key Measurements</th><th data-i18n="d.tbl.date">Date</th></tr></thead>
           <tbody id="tbl-measurements"></tbody>
@@ -736,7 +734,7 @@
       </div>
 
       <div class="inv-section" id="section-deliveries">
-        <div class="inv-section-title" data-i18n="d.inv.sec.deliv">🚚 Delivery Preferences</div>
+        <div class="inv-section-title" data-i18n="d.inv.sec.deliv">🚚 Delivery Preferences <span class="inv-count" id="count-deliveries">(0)</span></div>
         <div class="inv-table-wrap"><table>
           <thead><tr><th>#</th><th data-i18n="d.tbl.customer">Customer</th><th data-i18n="d.tbl.option">Option</th><th data-i18n="d.tbl.address">Address</th><th data-i18n="d.tbl.notes">Notes</th><th data-i18n="d.tbl.updated">Updated</th></tr></thead>
           <tbody id="tbl-deliveries"></tbody>
@@ -744,7 +742,7 @@
       </div>
 
       <div class="inv-section" id="section-delivered-orders">
-        <div class="inv-section-title" data-i18n="d.inv.sec.delivered">✅ Delivered Orders</div>
+        <div class="inv-section-title" data-i18n="d.inv.sec.delivered">✅ Delivered Orders <span class="inv-count" id="count-delivered-orders">(0)</span></div>
         <div class="inv-table-wrap"><table>
           <thead><tr><th>#</th><th data-i18n="d.tbl.customer">Customer</th><th data-i18n="d.tbl.garment">Garment</th><th data-i18n="d.tbl.delivtype">Delivery Type</th><th data-i18n="d.tbl.address">Address</th><th data-i18n="d.tbl.deliveredat">Delivered At</th></tr></thead>
           <tbody id="tbl-delivered-orders"></tbody>
@@ -752,7 +750,7 @@
       </div>
 
       <div class="inv-section" id="section-previews">
-        <div class="inv-section-title" data-i18n="d.inv.sec.previews">📸 Uploaded Previews</div>
+        <div class="inv-section-title" data-i18n="d.inv.sec.previews">📸 Uploaded Previews <span class="inv-count" id="count-previews">(0)</span></div>
         <div class="inv-table-wrap"><table>
           <thead><tr><th>#</th><th data-i18n="d.tbl.preview">Image</th><th data-i18n="d.tbl.customer">Customer</th><th data-i18n="d.tbl.uploaded">Uploaded</th></tr></thead>
           <tbody id="tbl-previews"></tbody>
@@ -1105,6 +1103,8 @@
     if (tabId === 'stock-manager') smLoad();
   };
   </script>
+  <script src="config.js"></script>
+  <script src="designer-dashboard.js"></script>
   <script src="lang.js"></script>
 </body>
 </html>

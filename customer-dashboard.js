@@ -16,6 +16,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     console.log("Customer ID:", userData.id);
     window.customerId = userData.id;
+    window.customerName = userData.name || '';
 
     fetchDesigner();
 });
@@ -95,10 +96,11 @@ function uploadDesign(event) {
         credentials: "include",
     })
     .then(r => { if (!r.ok) throw new Error(`Server error: ${r.status}`); return r.json(); })
-    .then(data => {
+        .then(data => {
         const msg = document.getElementById("uploadMessage");
         if (msg) { msg.style.color = "#4ade80"; msg.textContent = data.message || "✅ Upload successful!"; }
         else alert(data.message || "Upload successful!");
+        try { window.aiAssistant && window.aiAssistant.showHypeMessage(window.customerName || 'friend', 'uploaded a design'); } catch(e){}
     })
     .catch(error => {
         console.error("Upload error:", error);
@@ -255,6 +257,7 @@ function initiateMpesaPayment() {
     .then(data => {
         paymentMessage.textContent = data.message || "✅ Check your phone to enter your M-Pesa PIN.";
         paymentMessage.style.color = "green";
+        try { window.aiAssistant && window.aiAssistant.showHypeMessage(window.customerName || 'friend', 'payment'); } catch(e){}
     })
     .catch(() => {
         paymentMessage.textContent = "❌ Failed to initiate M-Pesa payment.";

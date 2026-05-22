@@ -1,6 +1,9 @@
 // ── Central API base ──────────────────────────────────────────────────────
 function getBase() { return (window.API_BASE) || "https://smartserve-smes.onrender.com"; }
 
+// Diagnostic load marker
+console.log("designer-dashboard.js loaded");
+
 document.addEventListener("DOMContentLoaded", function () {
     const userData = JSON.parse(localStorage.getItem("user"));
     if (!userData || userData.role !== "designer") {
@@ -545,30 +548,68 @@ async function fetchInventory() {
             fetch(`${getBase()}/designer-inventory/${designerId}`, { credentials: "include" }),
             fetch(`${getBase()}/tailoring/delivered-inventory/${designerId}`, { credentials: "include" })
         ]);
-        const [data, delData] = await Promise.all([invRes.json(), delRes.json()]);
 
-        if (!data.success) {
-            showInvError("Failed to load inventory.");
+        // Handle inventory response
+        if (!invRes.ok) {
+            const txt = await invRes.text().catch(() => "");
+            console.error("Inventory API error:", invRes.status, invRes.statusText, txt);
+            showInvError(`Failed to load inventory (status ${invRes.status}).`);
+            // clear stats
+            ["stat-customers","stat-designs","stat-measurements","stat-pickup","stat-delivery","stat-previews"].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = "-";
+            });
             return;
+        }
+
+        const data = await invRes.json().catch(e => {
+            console.error("Failed to parse inventory JSON:", e);
+            return null;
+        });
+
+        if (!data || !data.success) {
+            const msg = data && data.message ? data.message : "Failed to load inventory.";
+            console.error("Inventory fetch returned error:", msg, data);
+            showInvError(msg);
+            return;
+        }
+
+        // Delivered inventory is optional; tolerate failures
+        let delData = { items: [] };
+        if (delRes && delRes.ok) {
+            delData = await delRes.json().catch(e => {
+                console.warn("Could not parse delivered-inventory JSON:", e);
+                return { items: [] };
+            });
+        } else if (delRes && !delRes.ok) {
+            console.warn("Delivered-inventory API returned non-OK status:", delRes.status);
         }
 
         // Cache for filtering
         window._invData = data;
-        window._deliveredOrders = delData.items || [];
+        window._deliveredOrders = (delData && delData.items) ? delData.items : [];
 
-        // Update stats
-        document.getElementById("stat-customers").textContent    = data.stats.totalCustomers;
-        document.getElementById("stat-designs").textContent      = data.stats.totalDesigns;
-        document.getElementById("stat-measurements").textContent = data.stats.totalMeasurements;
-        document.getElementById("stat-pickup").textContent       = data.stats.pickupCount;
-        document.getElementById("stat-delivery").textContent     = data.stats.deliveryCount;
-        document.getElementById("stat-previews").textContent     = data.stats.totalPreviews;
+        // Update stats (use safe defaults)
+        const stats = data.stats || {};
+document.getElementById("stat-customers")?.textContent    = stats.totalCustomers ?? 0;
+    document.getElementById("stat-designs")?.textContent      = stats.totalDesigns ?? 0;
+    document.getElementById("stat-measurements")?.textContent = stats.totalMeasurements ?? 0;
+    document.getElementById("stat-pickup")?.textContent       = stats.pickupCount ?? 0;
+    document.getElementById("stat-delivery")?.textContent     = stats.deliveryCount ?? 0;
+    document.getElementById("stat-previews")?.textContent     = stats.totalPreviews ?? 0;
 
         renderInventory(data, "");
+        // Generate a brief AI insight for the designer
+        try {
+            if (window.aiAssistant && typeof window.aiAssistant.analyzeInventory === 'function') {
+                const summary = window.aiAssistant.analyzeInventory(data);
+                window.aiAssistant.showInsight('SmartServe Insight', summary);
+            }
+        } catch (e) { console.warn('AI insight generation failed', e); }
 
     } catch (err) {
         console.error("❌ Inventory fetch error:", err);
-        showInvError("Error connecting to server.");
+        showInvError(err && err.message ? err.message : "Error connecting to server.");
     }
 }
 
@@ -579,7 +620,9 @@ function renderInventory(data, searchTerm) {
     const customers = data.customers.filter(c =>
         !q || c.name.toLowerCase().includes(q) || c.email.toLowerCase().includes(q)
     );
-    document.getElementById("count-customers").textContent = `(${customers.length})`;
+    if (document.getElementById("count-customers")) {
+        document.getElementById("count-customers").textContent = `(${customers.length})`;
+    }
     const tblC = document.getElementById("tbl-customers");
     if (customers.length === 0) {
         tblC.innerHTML = `<tr><td colspan="3" class="inv-empty">No customers found.</td></tr>`;
@@ -596,7 +639,9 @@ function renderInventory(data, searchTerm) {
     const designs = data.designs.filter(d =>
         !q || d.customer_name.toLowerCase().includes(q)
     );
-    document.getElementById("count-designs").textContent = `(${designs.length})`;
+    if (document.getElementById("count-designs")) {
+        document.getElementById("count-designs").textContent = `(${designs.length})`;
+    }
     const tblD = document.getElementById("tbl-designs");
     if (designs.length === 0) {
         tblD.innerHTML = `<tr><td colspan="4" class="inv-empty">No designs uploaded yet.</td></tr>`;
@@ -620,7 +665,9 @@ function renderInventory(data, searchTerm) {
     const measurements = data.measurements.filter(m =>
         !q || m.customer_name.toLowerCase().includes(q) || m.garment_type.toLowerCase().includes(q)
     );
-    document.getElementById("count-measurements").textContent = `(${measurements.length})`;
+    if (document.getElementById("count-measurements")) {
+        document.getElementById("count-measurements").textContent = `(${measurements.length})`;
+    }
     const tblM = document.getElementById("tbl-measurements");
     if (measurements.length === 0) {
         tblM.innerHTML = `<tr><td colspan="5" class="inv-empty">No measurements submitted yet.</td></tr>`;
@@ -644,7 +691,9 @@ function renderInventory(data, searchTerm) {
     const deliveries = data.deliveries.filter(d =>
         !q || d.customer_name.toLowerCase().includes(q)
     );
-    document.getElementById("count-deliveries").textContent = `(${deliveries.length})`;
+    if (document.getElementById("count-deliveries")) {
+        document.getElementById("count-deliveries").textContent = `(${deliveries.length})`;
+    }
     const tblDel = document.getElementById("tbl-deliveries");
     if (deliveries.length === 0) {
         tblDel.innerHTML = `<tr><td colspan="6" class="inv-empty">No delivery preferences set yet.</td></tr>`;
@@ -670,7 +719,9 @@ function renderInventory(data, searchTerm) {
     const previews = data.previews.filter(p =>
         !q || p.customer_name.toLowerCase().includes(q)
     );
-    document.getElementById("count-previews").textContent = `(${previews.length})`;
+    if (document.getElementById("count-previews")) {
+        document.getElementById("count-previews").textContent = `(${previews.length})`;
+    }
     const tblP = document.getElementById("tbl-previews");
     if (previews.length === 0) {
         tblP.innerHTML = `<tr><td colspan="4" class="inv-empty">No previews uploaded yet.</td></tr>`;
@@ -694,7 +745,9 @@ function renderInventory(data, searchTerm) {
     const deliveredOrders = (window._deliveredOrders || []).filter(d =>
         !q || (d.customer_name || "").toLowerCase().includes(q)
     );
-    document.getElementById("count-delivered-orders").textContent = `(${deliveredOrders.length})`;
+    if (document.getElementById("count-delivered-orders")) {
+        document.getElementById("count-delivered-orders").textContent = `(${deliveredOrders.length})`;
+    }
     const tblDO = document.getElementById("tbl-delivered-orders");
     if (tblDO) {
         if (deliveredOrders.length === 0) {
@@ -738,8 +791,8 @@ function applySectionFilter() {
 }
 
 function showInvError(msg) {
-    ["customers","designs","measurements","deliveries","previews"].forEach(s => {
-        const cols = { customers:3, designs:4, measurements:5, deliveries:6, previews:4 };
+    ["customers","designs","measurements","deliveries","previews","delivered-orders"].forEach(s => {
+        const cols = { customers:3, designs:4, measurements:5, deliveries:6, previews:4, "delivered-orders":6 };
         const el = document.getElementById("tbl-" + s);
         if (el) el.innerHTML = `<tr><td colspan="${cols[s]}" class="inv-empty" style="color:#ff8a9a;">❌ ${msg}</td></tr>`;
     });
