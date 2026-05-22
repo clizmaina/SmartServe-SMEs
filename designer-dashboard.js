@@ -533,8 +533,17 @@ async function markTailoringDelivered() {
 window._invData = null;
 
 async function fetchInventory() {
-    const designerId = window.designerId;
-    if (!designerId) return;
+    // Wait for designerId to be set (retry up to 3 seconds)
+    let designerId = window.designerId;
+    if (!designerId) {
+        const userData = JSON.parse(localStorage.getItem("user"));
+        designerId = userData?.id;
+        if (designerId) window.designerId = designerId;
+    }
+    if (!designerId) {
+        showInvError("Please log in as a designer to view inventory.");
+        return;
+    }
 
     // Show loading state in all tables
     ["customers","designs","measurements","deliveries","previews","delivered-orders"].forEach(s => {
