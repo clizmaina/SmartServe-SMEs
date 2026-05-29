@@ -1,10 +1,22 @@
 // ── Central API base ──────────────────────────────────────────────────────
 function getBase() { return (window.API_BASE) || "https://smartserve-smes.onrender.com"; }
 
+// Track if initialization has already run to prevent duplicate listeners
+window._designerDashboardInitialized = window._designerDashboardInitialized || false;
+
+// Request abort controller for cleanup
+window._designerAbortController = new AbortController();
+
 // Diagnostic load marker
 console.log("designer-dashboard.js loaded");
 
 document.addEventListener("DOMContentLoaded", function () {
+    // Prevent duplicate initialization
+    if (window._designerDashboardInitialized) {
+        console.warn("Designer dashboard already initialized, skipping duplicate setup");
+        return;
+    }
+    window._designerDashboardInitialized = true;
     const userData = JSON.parse(localStorage.getItem("user"));
     if (!userData || userData.role !== "designer") {
         window.location.replace("business-select.html");
@@ -25,7 +37,15 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 function setupEventListeners() {
+    // Only setup if not already done
+    if (window._listenersSetup) {
+        console.log("Event listeners already setup, skipping duplicate setup");
+        return;
+    }
+    window._listenersSetup = true;
+
     const customerSelect = document.getElementById("customerSelect");
+    const designerSelect = document.getElementById("designerSelect");
     const uploadPreviewButton = document.getElementById("uploadPreviewButton");
     const sendDesignerMessageButton = document.getElementById("sendDesignerMessageButton");
 
@@ -33,6 +53,19 @@ function setupEventListeners() {
         customerSelect.addEventListener("change", handleCustomerSelection);
     } else {
         console.error("Customer select dropdown not found.");
+    }
+
+    if (designerSelect) {
+        designerSelect.addEventListener("change", function () {
+            // When a designer is chosen, set global designerId and reload assigned customers
+            if (this.value) {
+                window.designerId = this.value;
+            }
+            fetchCustomers();
+            clearCustomerData();
+        });
+    } else {
+        console.warn("designerSelect dropdown not found (optional).");
     }
 
     if (uploadPreviewButton) {
@@ -77,17 +110,59 @@ function fetchCustomerData(customerId) {
 
 
 function showTab(tabId) {
-    document.querySelectorAll(".tab-content").forEach(tab => tab.classList.remove("active"));
-    document.getElementById(tabId)?.classList.add("active");
+    try {
+        // Validate tab ID
+        if (!tabId || typeof tabId !== 'string') {
+            console.error("Invalid tab ID:", tabId);
+            return;
+        }
 
-    // Reload delivery info when that tab is opened
-    if (tabId === "customer-delivery") {
-        const customerId = document.getElementById("customerSelect")?.value;
-        if (customerId) fetchCustomerDelivery(customerId, window.designerId);
-    }
-    // Load inventory when that tab is opened
-    if (tabId === "inventory") {
-        fetchInventory();
+        // Remove active class from all tabs
+        const tabs = document.querySelectorAll(".tab-content");
+        tabs.forEach(tab => {
+            tab.classList.remove("active");
+        });
+
+        // Add active class to selected tab
+        const targetTab = document.getElementById(tabId);
+        if (!targetTab) {
+            console.error(`Tab with id "${tabId}" not found in DOM`);
+            return;
+        }
+        targetTab.classList.add("active");
+
+        // Highlight active nav link
+        const navLinks = document.querySelectorAll(".sidebar a[onclick*='showTab']");
+        navLinks.forEach(link => {
+            link.classList.remove("active");
+        });
+        
+        const activeLink = document.querySelector(`.sidebar a[onclick="showTab('${tabId}')"]`);
+        if (activeLink) {
+            activeLink.classList.add("active");
+        }
+
+        // Reload delivery info when that tab is opened
+        if (tabId === "customer-delivery") {
+            const customerId = document.getElementById("customerSelect")?.value;
+            if (customerId) {
+                fetchCustomerDelivery(customerId, window.designerId);
+            }
+        }
+
+        // Load inventory when that tab is opened
+        if (tabId === "inventory") {
+            fetchInventory();
+        }
+
+        // Load stock manager when that tab is opened
+        if (tabId === "stock-manager") {
+            if (typeof smLoad === 'function') {
+                smLoad();
+            }
+        }
+    } catch (e) {
+        console.error("Error in showTab:", e);
     }
 }
 const baseUrl = `${getBase()}/`;
@@ -105,8 +180,9 @@ fetch(`${getBase()}/customer-designs/${customerId}/${designerId}`, { credentials
         return response.json();
       })
       .then(data => {
-        const designList = document.getElementById("design-list");
-        designList.innerHTML = "";
+          const designList = document.getElementById("design-list");
+          if (!designList) { console.warn('design-list element not found'); return; }
+          designList.innerHTML = "";
         if (data.success && data.designs.length > 0) {
           data.designs.forEach(design => {
             const listItem = document.createElement("li");
@@ -132,42 +208,45 @@ fetch(`${getBase()}/customer-designs/${customerId}/${designerId}`, { credentials
  function fetchCustomerMeasurements(customerId) {
     fetch(`${getBase()}/customer-measurements/${customerId}/${window.designerId}`, { credentials: "include" })
       .then(response => response.json())
-      .then(data => {
-        const measurementInfo = document.getElementById("measurement-info");
-        measurementInfo.innerHTML = ""; // Clear previous content
-  
-      if (data.success && data.measurements.length > 0) {
-        data.measurements.forEach(set => {
-          const section = document.createElement("div");
-          section.classList.add("measurement-set");
-          section.style.marginBottom = "15px";
-          section.style.padding = "10px";
-          section.style.border = "1px solid #444";
-          section.style.borderRadius = "8px";
-          section.style.color = "white";
+            .then(data => {
+                const measurementInfo = document.getElementById("measurement-info");
+                if (!measurementInfo) { console.warn('measurement-info element not found'); return; }
+                measurementInfo.innerHTML = ""; // Clear previous content
 
-          const header = document.createElement("h3");
-          header.textContent = `👕 Garment Type: ${set.garmentType}`;
-          header.style.marginBottom = "8px";
+            if (data.success && Array.isArray(data.measurements) && data.measurements.length > 0) {
+                data.measurements.forEach(set => {
+                    const section = document.createElement("div");
+                    section.classList.add("measurement-set");
+                    section.style.marginBottom = "15px";
+                    section.style.padding = "10px";
+                    section.style.border = "1px solid #444";
+                    section.style.borderRadius = "8px";
+                    section.style.color = "white";
 
-          const list = document.createElement("ul");
-          list.style.listStyle = "disc";
-          list.style.marginLeft = "20px";
+                    const garmentLabel = set.garmentType || set.garment_type || set.garment || 'Garment';
+                    const header = document.createElement("h3");
+                    header.textContent = `👕 Garment Type: ${garmentLabel}`;
+                    header.style.marginBottom = "8px";
 
-          for (const [key, value] of Object.entries(set.measurements)) {
-            const item = document.createElement("li");
-            item.textContent = `${key}: ${value} cm`;
-            list.appendChild(item);
-          }
+                    const list = document.createElement("ul");
+                    list.style.listStyle = "disc";
+                    list.style.marginLeft = "20px";
 
-          section.appendChild(header);
-          section.appendChild(list);
-          measurementInfo.appendChild(section);
-        });
-      } else {
-        measurementInfo.textContent = "No measurements uploaded by the customer.";
-      }
-    })
+                    const measurementsObj = set.measurements || set.measurement || set.values || {};
+                    for (const [key, value] of Object.entries(measurementsObj)) {
+                        const item = document.createElement("li");
+                        item.textContent = `${key}: ${value} cm`;
+                        list.appendChild(item);
+                    }
+
+                    section.appendChild(header);
+                    section.appendChild(list);
+                    measurementInfo.appendChild(section);
+                });
+            } else {
+                measurementInfo.textContent = "No measurements uploaded by the customer.";
+            }
+        })
     .catch(error => {
       console.error("❌ Error fetching customer measurements:", error);
       document.getElementById("measurement-info").textContent = "Error loading measurements.";
@@ -179,8 +258,9 @@ function fetchCustomerPayments(customerId) {
         .then(response => response.json())
         .then(data => {
             const paymentList = document.getElementById("payment-list");
+            if (!paymentList) { console.warn('payment-list element not found'); return; }
             paymentList.innerHTML = "";
-            if (data.success && data.payments.length > 0) {
+            if (data.success && Array.isArray(data.payments) && data.payments.length > 0) {
                 data.payments.forEach(payment => {
                     const listItem = document.createElement("li");
                     listItem.innerHTML = `
@@ -202,8 +282,9 @@ function fetchCustomerChat(customerId,designerId) {
         .then(response => response.json())
         .then(data => {
             const chatDisplay = document.getElementById("chat-display");
+            if (!chatDisplay) { console.warn('chat-display element not found'); return; }
             chatDisplay.innerHTML = "";
-            if (data.success && data.messages.length > 0) {
+            if (data.success && Array.isArray(data.messages) && data.messages.length > 0) {
                 data.messages.forEach(msg => {
                     const msgElement = document.createElement("p");
                     msgElement.innerHTML = `<strong>${msg.sender}:</strong> ${msg.message}`;
@@ -217,12 +298,11 @@ function fetchCustomerChat(customerId,designerId) {
 }
 
 function clearCustomerData() {
-    document.getElementById("design-list").innerHTML = "";
-    document.getElementById("measurement-info").innerHTML = "";
-    document.getElementById("payment-list").innerHTML = "";
-    document.getElementById("chat-display").innerHTML = "";
-    document.getElementById("delivery-info-box").innerHTML =
-        "<p style='color:rgba(255,255,255,0.4);'>Select a customer first to view their delivery preference.</p>";
+    const elDesign = document.getElementById("design-list"); if (elDesign) elDesign.innerHTML = "";
+    const elMeas = document.getElementById("measurement-info"); if (elMeas) elMeas.innerHTML = "";
+    const elPay = document.getElementById("payment-list"); if (elPay) elPay.innerHTML = "";
+    const elChat = document.getElementById("chat-display"); if (elChat) elChat.innerHTML = "";
+    const elDel = document.getElementById("delivery-info-box"); if (elDel) elDel.innerHTML = "<p style='color:rgba(255,255,255,0.4);'>Select a customer first to view their delivery preference.</p>";
 }
 function fetchDesigners() {
     const designerSelect = document.getElementById("designerSelect");
@@ -289,8 +369,8 @@ function uploadPreview(event) {
         alert("Designer ID is missing. Please log in again.");
         return;
     }
-    if (!fileInput || fileInput.files.length === 12) {
-        previewMessage.textContent = "Please select a file.";
+    if (!fileInput || fileInput.files.length === 0) {
+        if (previewMessage) previewMessage.textContent = "Please select a file.";
         return;
     }
 
@@ -309,11 +389,11 @@ function uploadPreview(event) {
         .then(response => response.json().then(data => ({ status: response.status, data })))
         .then(({ status, data }) => {
             console.log("Upload Preview Response:", status, data);
-            previewMessage.textContent = data.message || "Upload successful!";
+            if (previewMessage) previewMessage.textContent = data.message || "Upload successful!";
         })
         .catch(error => {
             console.error("Upload failed:", error);
-            previewMessage.textContent = "Upload failed. Please try again.";
+            if (previewMessage) previewMessage.textContent = "Upload failed. Please try again.";
         });
 }
 
@@ -364,7 +444,8 @@ function sendDesignerMessage(event) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            document.getElementById("chat-display").innerHTML += `<p><strong>Designer:</strong> ${message}</p>`;
+            const chatDisplay = document.getElementById("chat-display");
+            if (chatDisplay) chatDisplay.innerHTML += `<p><strong>Designer:</strong> ${message}</p>`;
             messageInput.value = "";
         } else {
             console.error("Server error:", data);
@@ -378,19 +459,52 @@ function sendDesignerMessage(event) {
 
 
 function logoutDesigner() {
+    // Abort all pending requests
+    if (window._designerAbortController) {
+        window._designerAbortController.abort();
+        window._designerAbortController = new AbortController();
+    }
+
     fetch(`${getBase()}/logout`, { method: "POST", credentials: "include" })
         .then(response => response.json())
         .then(data => {
             console.log("Logout Response:", data);
             if (data.success) {
-            localStorage.removeItem('user');
-            localStorage.removeItem('businessType');
-            window.location.replace("business-select.html");
+                // Clear all cached data and state
+                clearDesignerState();
+                localStorage.removeItem('user');
+                localStorage.removeItem('businessType');
+                window.location.replace("business-select.html");
             } else {
                 alert("Logout failed.");
             }
         })
         .catch(error => console.error("Logout Error:", error));
+}
+
+// Function to clean up all designer state when logging out
+function clearDesignerState() {
+    // Clear global state
+    window.designerId = null;
+    window._invData = null;
+    window._deliveredOrders = null;
+    window._smTrends = null;
+    window._designerDashboardInitialized = false;
+    window._listenersSetup = false;
+
+    // Clear element content
+    const elementsToClean = [
+        "design-list", "measurement-info", "payment-list", "chat-display",
+        "delivery-info-box", "tbl-customers", "tbl-designs", "tbl-measurements",
+        "tbl-deliveries", "tbl-previews", "tbl-delivered-orders",
+        "sm-grid", "sm-trends-chart", "sm-top-grid", "sm-orders-list"
+    ];
+    elementsToClean.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = "";
+    });
+
+    console.log("Designer state cleared");
 }
 
 
@@ -545,6 +659,13 @@ async function fetchInventory() {
         return;
     }
 
+    // Cancel previous requests if any
+    if (window._inventoryAbortController) {
+        window._inventoryAbortController.abort();
+    }
+    window._inventoryAbortController = new AbortController();
+    const signal = window._inventoryAbortController.signal;
+
     // Show loading state in all tables
     ["customers","designs","measurements","deliveries","previews","delivered-orders"].forEach(s => {
         const cols = { customers:3, designs:4, measurements:5, deliveries:6, previews:4, "delivered-orders":6 };
@@ -554,9 +675,15 @@ async function fetchInventory() {
 
     try {
         const [invRes, delRes] = await Promise.all([
-            fetch(`${getBase()}/designer-inventory/${designerId}`, { credentials: "include" }),
-            fetch(`${getBase()}/tailoring/delivered-inventory/${designerId}`, { credentials: "include" })
+            fetch(`${getBase()}/designer-inventory/${designerId}`, { credentials: "include", signal }),
+            fetch(`${getBase()}/tailoring/delivered-inventory/${designerId}`, { credentials: "include", signal })
         ]);
+
+        // Handle request abortion
+        if (signal.aborted) {
+            console.log("Inventory fetch was aborted");
+            return;
+        }
 
         // Handle inventory response
         if (!invRes.ok) {
@@ -600,25 +727,22 @@ async function fetchInventory() {
 
         // Update stats (use safe defaults)
         const stats = data.stats || {};
-document.getElementById("stat-customers")?.textContent    = stats.totalCustomers ?? 0;
-    document.getElementById("stat-designs")?.textContent      = stats.totalDesigns ?? 0;
-    document.getElementById("stat-measurements")?.textContent = stats.totalMeasurements ?? 0;
-    document.getElementById("stat-pickup")?.textContent       = stats.pickupCount ?? 0;
-    document.getElementById("stat-delivery")?.textContent     = stats.deliveryCount ?? 0;
-    document.getElementById("stat-previews")?.textContent     = stats.totalPreviews ?? 0;
+        const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+        setEl("stat-customers",    stats.totalCustomers    ?? 0);
+        setEl("stat-designs",      stats.totalDesigns      ?? 0);
+        setEl("stat-measurements", stats.totalMeasurements ?? 0);
+        setEl("stat-pickup",       stats.pickupCount       ?? 0);
+        setEl("stat-delivery",     stats.deliveryCount     ?? 0);
+        setEl("stat-previews",     stats.totalPreviews     ?? 0);
 
         renderInventory(data, "");
-        // Generate a brief AI insight for the designer
-        try {
-            if (window.aiAssistant && typeof window.aiAssistant.analyzeInventory === 'function') {
-                const summary = window.aiAssistant.analyzeInventory(data);
-                window.aiAssistant.showInsight('SmartServe Insight', summary);
-            }
-        } catch (e) { console.warn('AI insight generation failed', e); }
 
     } catch (err) {
-        console.error("❌ Inventory fetch error:", err);
-        showInvError(err && err.message ? err.message : "Error connecting to server.");
+        // Don't log abort errors as they're expected
+        if (err.name !== "AbortError") {
+            console.error("❌ Inventory fetch error:", err);
+            showInvError(err && err.message ? err.message : "Error connecting to server.");
+        }
     }
 }
 
@@ -825,3 +949,6 @@ function fmtDate(dateStr) {
         });
     } catch { return dateStr; }
 }
+
+// All functionality is now integrated into showTab function above
+// No need for additional wrapping
