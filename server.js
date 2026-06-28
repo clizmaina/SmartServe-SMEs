@@ -1,4 +1,4 @@
-// Production build � SmartServe SMEs
+﻿// Production build � SmartServe SMEs
 const cors = require("cors");
 const express = require("express");
 const mysql = require("mysql2");
@@ -13,6 +13,20 @@ const PORT = process.env.PORT || 5501;
 const axios = require("axios");
 const session = require('express-session');
 require("dotenv").config();
+
+// ✅ Cloudinary — persistent cloud image storage (survives Render redeploys)
+let cloudinary = null;
+try {
+    cloudinary = require('cloudinary').v2;
+    cloudinary.config({
+        cloud_name: process.env.CLOUDINARY_CLOUD_NAME || '',
+        api_key:    process.env.CLOUDINARY_API_KEY    || '',
+        api_secret: process.env.CLOUDINARY_API_SECRET || ''
+    });
+} catch(e) { console.warn('Cloudinary not installed:', e.message); }
+
+const cloudinaryEnabled = !!(cloudinary && process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY);
+console.log(`☁️  Cloudinary: ${cloudinaryEnabled ? 'enabled' : 'disabled (local uploads only)'}`);
 
 // ✅ CORS Setup — allows localhost, LAN, and production Render domain
 const allowedOrigins = [
@@ -416,15 +430,17 @@ const otpStore = {};
 
 
 
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-    destination: './uploads/', // Destination folder for uploaded files
-    filename: function (req, file, cb) {
-        cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname));
-    }
-});
+// Configure multer — memory storage for Cloudinary, disk storage for local
+const storage = cloudinaryEnabled
+    ? multer.memoryStorage()
+    : multer.diskStorage({
+        destination: './uploads/',
+        filename: function (req, file, cb) {
+            cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname));
+        }
+    });
 
-const upload = multer({ storage: storage });
+const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } });
 
 // ✅ Health Check (API only)
 app.get("/health", (req, res) => {
@@ -2109,17 +2125,30 @@ app.post("/smart-items/stock/:id", async (req, res) => {
     } catch(e) { res.status(500).json({ success:false, message:e.message }); }
 });
 
-// POST /smart-items/samples/:id  (upload sample image, max 10)
+// POST /smart-items/samples/:id  (upload to Cloudinary for persistent storage, max 10)
 app.post("/smart-items/samples/:id", upload.single("image"), async (req, res) => {
     const itemId = req.params.id;
-    if (!req.file) return res.status(400).json({ success:false, message:"❌ No image uploaded." });
+    if (!req.file) return res.status(400).json({ success:false, message:"No image uploaded." });
     try {
-        const [rows] = await db.promise().query("SELECT COUNT(*) AS cnt FROM smart_item_samples WHERE item_id=?", [itemId]);
-        if (rows[0].cnt >= 10) return res.status(400).json({ success:false, message:"❌ Max 10 samples already uploaded." });
-        const p = `/uploads/${req.file.filename}`;
-        await db.promise().query("INSERT INTO smart_item_samples (item_id,path,description) VALUES (?,?,?)", [itemId, p, req.body.description||""]);
-        res.json({ success:true, message:`✅ Sample uploaded (${rows[0].cnt+1}/10).`, path:p });
-    } catch(e) { res.status(500).json({ success:false, message:e.message }); }
+        const [cnt] = await db.promise().query("SELECT COUNT(*) AS c FROM smart_item_samples WHERE item_id=?", [itemId]);
+        if (cnt[0].c >= 10) return res.status(400).json({ success:false, message:"Max 10 samples reached." });
+        let imageUrl;
+        if (cloudinaryEnabled && req.file.buffer) {
+            imageUrl = await new Promise((resolve, reject) => {
+                cloudinary.uploader.upload_stream({ folder: "smartserve-smes", resource_type: "image" },
+                    (err, r) => err ? reject(err) : resolve(r.secure_url)
+                ).end(req.file.buffer);
+            });
+        } else {
+            imageUrl = "/uploads/" + (req.file.filename || ("img-" + Date.now() + ".jpg"));
+        }
+        await db.promise().query("INSERT INTO smart_item_samples (item_id,path,description) VALUES (?,?,?)",
+            [itemId, imageUrl, req.body.description || ""]);
+        res.json({ success:true, message:"Sample " + (cnt[0].c+1) + "/10 uploaded.", path: imageUrl });
+    } catch(e) {
+        console.error("Sample upload error:", e.message);
+        res.status(500).json({ success:false, message: e.message });
+    }
 });
 
 // DELETE /smart-items/samples/:sampleId
@@ -2241,19 +2270,6 @@ app.post("/smart-items/stock/:id", async (req, res) => {
     try {
         await db.promise().query("UPDATE smart_items SET stock=? WHERE id=?", [stock, req.params.id]);
         res.json({ success:true, message:`✅ Stock updated to ${stock} units.` });
-    } catch(e) { res.status(500).json({ success:false, message:e.message }); }
-});
-
-// POST /smart-items/samples/:id  (upload sample image, max 10)
-app.post("/smart-items/samples/:id", upload.single("image"), async (req, res) => {
-    const itemId = req.params.id;
-    if (!req.file) return res.status(400).json({ success:false, message:"❌ No image uploaded." });
-    try {
-        const [rows] = await db.promise().query("SELECT COUNT(*) AS cnt FROM smart_item_samples WHERE item_id=?", [itemId]);
-        if (rows[0].cnt >= 10) return res.status(400).json({ success:false, message:"❌ Max 10 samples already uploaded." });
-        const p = `/uploads/${req.file.filename}`;
-        await db.promise().query("INSERT INTO smart_item_samples (item_id,path,description) VALUES (?,?,?)", [itemId, p, req.body.description||""]);
-        res.json({ success:true, message:`✅ Sample uploaded (${rows[0].cnt+1}/10).`, path:p });
     } catch(e) { res.status(500).json({ success:false, message:e.message }); }
 });
 
