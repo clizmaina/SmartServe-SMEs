@@ -97,7 +97,7 @@ if (process.env.MYSQL_PUBLIC_URL) {
         port:     parseInt(url.port) || 3306,
         ssl: { rejectUnauthorized: false },
         waitForConnections: true,
-        connectionLimit: 10,
+        connectionLimit: 4,
         queueLimit: 0
     };
     console.log("🔗 Using MYSQL_PUBLIC_URL:", url.hostname);
@@ -110,7 +110,7 @@ if (process.env.MYSQL_PUBLIC_URL) {
         port:     parseInt(process.env.DB_PORT || "3306"),
         ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
         waitForConnections: true,
-        connectionLimit: 10,
+        connectionLimit: 4,
         queueLimit: 0,
         enableKeepAlive: true,
         keepAliveInitialDelay: 10000
