@@ -41,6 +41,9 @@
     <a onclick="showTab('orders')">📦 My Orders</a>
     <a onclick="showTab('quote')">📋 Request Quote</a>
     <a onclick="showTab('support')">🛠️ Support</a>
+    <a onclick="showTab('chat')">💬 Chat with Hardware</a>
+    <a onclick="showTab('ai-assistant')">🤖 AI Assistant</a>
+    <a onclick="showTab('analytics')">📈 My History</a>
     <a onclick="logout()">🚪 Logout</a>
   </div>
 
@@ -123,12 +126,15 @@
     </div>
   </div>
 
+  <script src="config.js"></script>
+  <script src="lang.js"></script>
   <script>
     const BASE = window.API_BASE || 'https://smartserve-smes.onrender.com';
 
     // Auth guard — runs immediately on page load
     (function() {
-      if (!localStorage.getItem('user')) {
+      const _u = JSON.parse(localStorage.getItem('user') || 'null');
+      if (!_u || _u.role !== 'customer') {
         window.location.replace('business-select.html');
       }
       history.replaceState(null, '', window.location.href);
@@ -192,11 +198,56 @@
     }
 
     function logout() {
-      localStorage.removeItem('user');
-      localStorage.removeItem('businessType');
-      window.location.replace('business-select.html');
+      fetch(BASE + '/logout', { method: 'POST', credentials: 'include' })
+        .catch(() => {})
+        .finally(() => {
+          localStorage.removeItem('user');
+          localStorage.removeItem('businessType');
+          window.location.replace('business-select.html');
+        });
     }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      if (user.id) window._bcaCustomerId = user.id;
+      if (user.provider_id) window._bcaProviderId = user.provider_id;
+      if (typeof bcaDashboard !== 'undefined') {
+        bcaDashboard.renderChat('chat-container', 'hardware', 'customer', '#2e7d32');
+        bcaDashboard.renderAI('ai-container', 'hardware');
+        bcaDashboard.renderAnalytics('analytics-container', 'hardware', 'customer', '#c8e6a0');
+      }
+    });
+
+    const _origShowTab = window.showTab;
+    window.showTab = function(id) {
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      const el = document.getElementById(id);
+      if (el) el.classList.add('active');
+      if (id === 'choose-provider') loadProviders();
+      if (id === 'chat' && window._bcaCustomerId && window._bcaProviderId) {
+        bcaDashboard.loadChat('chat-container', 'hardware', window._bcaCustomerId, window._bcaProviderId);
+      }
+    };
   </script>
-  <script src="config.js"></script><script src="lang.js"></script>
+
+  <div id="chat" class="tab-content">
+    <h1>💬 Chat with Hardware Store</h1>
+    <p style="color:#ddd;margin-bottom:20px;">Ask about product availability, delivery, or request a custom quote.</p>
+    <div class="card"><div id="chat-container"></div></div>
+  </div>
+
+  <div id="ai-assistant" class="tab-content">
+    <h1>🤖 AI Construction Assistant</h1>
+    <p style="color:#ddd;margin-bottom:20px;">Get material estimates, construction advice, and product guidance — powered by AI.</p>
+    <div class="card"><div id="ai-container"></div></div>
+  </div>
+
+  <div id="analytics" class="tab-content">
+    <h1>📈 My Order History</h1>
+    <p style="color:#ddd;margin-bottom:20px;">Track your orders, quotes, and spending — with AI insights.</p>
+    <div class="card"><div id="analytics-container"></div></div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="business-chat-ai.js"></script>
 </body>
 </html>

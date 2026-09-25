@@ -42,6 +42,9 @@
     <a onclick="showTab('reserve')">🪑 Reserve Table</a>
     <a onclick="showTab('orders')">📦 My Orders</a>
     <a onclick="showTab('reviews')">⭐ Leave Review</a>
+    <a onclick="showTab('chat')">💬 Chat with Restaurant</a>
+    <a onclick="showTab('ai-assistant')">🤖 AI Assistant</a>
+    <a onclick="showTab('analytics')">📈 My History</a>
     <a onclick="logout()">🚪 Logout</a>
   </div>
 
@@ -122,12 +125,15 @@
     </div>
   </div>
 
+  <script src="config.js"></script>
+  <script src="lang.js"></script>
   <script>
     const BASE = window.API_BASE || 'https://smartserve-smes.onrender.com';
 
     // Auth guard — runs immediately on page load
     (function() {
-      if (!localStorage.getItem('user')) {
+      const _u = JSON.parse(localStorage.getItem('user') || 'null');
+      if (!_u || _u.role !== 'customer') {
         window.location.replace('business-select.html');
       }
       history.replaceState(null, '', window.location.href);
@@ -191,11 +197,56 @@
     }
 
     function logout() {
-      localStorage.removeItem('user');
-      localStorage.removeItem('businessType');
-      window.location.replace('business-select.html');
+      fetch(BASE + '/logout', { method: 'POST', credentials: 'include' })
+        .catch(() => {})
+        .finally(() => {
+          localStorage.removeItem('user');
+          localStorage.removeItem('businessType');
+          window.location.replace('business-select.html');
+        });
     }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      if (user.id) window._bcaCustomerId = user.id;
+      if (user.provider_id) window._bcaProviderId = user.provider_id;
+      if (typeof bcaDashboard !== 'undefined') {
+        bcaDashboard.renderChat('chat-container', 'restaurant', 'customer', '#c0392b');
+        bcaDashboard.renderAI('ai-container', 'restaurant');
+        bcaDashboard.renderAnalytics('analytics-container', 'restaurant', 'customer', '#ffe8c0');
+      }
+    });
+
+    const _origShowTab = window.showTab;
+    window.showTab = function(id) {
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      const el = document.getElementById(id);
+      if (el) el.classList.add('active');
+      if (id === 'choose-provider') loadProviders();
+      if (id === 'chat' && window._bcaCustomerId && window._bcaProviderId) {
+        bcaDashboard.loadChat('chat-container', 'restaurant', window._bcaCustomerId, window._bcaProviderId);
+      }
+    };
   </script>
-  <script src="config.js"></script><script src="lang.js"></script>
+
+  <div id="chat" class="tab-content">
+    <h1>💬 Chat with the Restaurant</h1>
+    <p style="color:#ddd;margin-bottom:20px;">Ask about your order, special requests, or table reservation details.</p>
+    <div class="card"><div id="chat-container"></div></div>
+  </div>
+
+  <div id="ai-assistant" class="tab-content">
+    <h1>🤖 AI Dining Assistant</h1>
+    <p style="color:#ddd;margin-bottom:20px;">Get meal recommendations, dietary advice, and food information — powered by AI.</p>
+    <div class="card"><div id="ai-container"></div></div>
+  </div>
+
+  <div id="analytics" class="tab-content">
+    <h1>📈 My Dining History</h1>
+    <p style="color:#ddd;margin-bottom:20px;">Track your orders, reservations, and spending — with AI insights.</p>
+    <div class="card"><div id="analytics-container"></div></div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="business-chat-ai.js"></script>
 </body>
 </html>

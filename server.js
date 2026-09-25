@@ -26,7 +26,7 @@ try {
 } catch(e) { console.warn('Cloudinary not installed:', e.message); }
 
 const cloudinaryEnabled = !!(cloudinary && process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY);
-console.log(`☁️  Cloudinary: ${cloudinaryEnabled ? 'enabled' : 'disabled (local uploads only)'}`);
+console.log(`☁️  Cloudinary: ${cloudinaryEnabled ? 'enabled ✅' : 'disabled (local uploads only)'}`);
 
 // ✅ CORS Setup — allows localhost, LAN, and production Render domain
 const allowedOrigins = [
@@ -1042,26 +1042,6 @@ app.post("/send-message", (req, res) => {
   });
 });
 
-app.post('/upload-design', upload.single('design'), (req, res) => {
-    if (!req.file) {
-        return res.status(400).json({ success: false, message: 'No file uploaded.' });
-    }
-    const adminId = req.body.designerId;
-    const customerId = req.body.customerId;
-    const filePath = `/uploads/${req.file.filename}`;
-
-    db.query(
-        "INSERT INTO customer_designs (customer_id, designer_id, file_path) VALUES (?, ?, ?)",
-        [customerId, adminId, filePath],
-        (err, results) => {
-            if (err) {
-                console.error("Error saving design:", err);
-                return res.status(500).json({ success: false, message: 'Error saving design to database.' });
-            }
-            res.json({ success: true, message: 'Design uploaded and saved successfully.' });
-        }
-    );
-});
 app.get("/customer-designs/:customerId/:designerId", async (req, res) => {
   const { customerId, designerId } = req.params;
 
@@ -2241,59 +2221,214 @@ db.query("SELECT COUNT(*) AS cnt FROM smart_items", (err, rows) => {
     }, 1500);
 });
 
-// GET /smart-items/stock
-app.get("/smart-items/stock", async (req, res) => {
-    try {
-        const [items]   = await db.promise().query("SELECT id,name,price,stock FROM smart_items ORDER BY name ASC");
-        const [samples] = await db.promise().query("SELECT item_id,id,path,description FROM smart_item_samples ORDER BY uploaded_at ASC");
-        const smap = {};
-        samples.forEach(s => { if (!smap[s.item_id]) smap[s.item_id]=[]; smap[s.item_id].push(s); });
-        res.json({ success:true, items: items.map(i => ({ ...i, samples: smap[i.id]||[] })) });
-    } catch(e) { res.status(500).json({ success:false, message:e.message }); }
+
+
+
+
+
+// ============================================================
+// ✅ BIZ CHAT — shared chat for agrovet/cyber/hardware/restaurant/salon/boutique
+// ============================================================
+
+// Create biz_chat table on startup
+db.query(`
+  CREATE TABLE IF NOT EXISTS biz_chat (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    business_type VARCHAR(50) NOT NULL,
+    customer_id INT NOT NULL,
+    provider_id INT NOT NULL,
+    sender VARCHAR(30) NOT NULL,
+    message TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_biz_chat (business_type, customer_id, provider_id)
+  )
+`, (err) => { if (err) console.error("biz_chat table:", err.message); });
+
+// GET /biz-chat/:businessType/:customerId/:providerId
+app.get("/biz-chat/:businessType/:customerId/:providerId", async (req, res) => {
+  const { businessType, customerId, providerId } = req.params;
+  try {
+    const [rows] = await db.promise().query(
+      `SELECT sender, message, created_at AS timestamp FROM biz_chat
+       WHERE business_type=? AND customer_id=? AND provider_id=?
+       ORDER BY created_at ASC`,
+      [businessType, customerId, providerId]
+    );
+    res.json({ success: true, messages: rows });
+  } catch(e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
 });
 
-// GET /smart-items/trends
-app.get("/smart-items/trends", async (req, res) => {
-    try {
-        const [items] = await db.promise().query("SELECT id,name,price FROM smart_items ORDER BY name ASC");
-        const [sales] = await db.promise().query("SELECT item_id,month_label,month_year,units_sold,revenue FROM smart_item_sales ORDER BY month_year ASC");
-        const smap = {};
-        sales.forEach(s => { if (!smap[s.item_id]) smap[s.item_id]=[]; smap[s.item_id].push({ month:s.month_label, units_sold:s.units_sold, revenue:parseFloat(s.revenue) }); });
-        res.json({ success:true, trends: items.map(i => ({ name:i.name, price:i.price, monthly:smap[i.id]||[] })) });
-    } catch(e) { res.status(500).json({ success:false, message:e.message }); }
+// POST /biz-chat/:businessType
+app.post("/biz-chat/:businessType", async (req, res) => {
+  const { businessType } = req.params;
+  const { customerId, providerId, sender, message } = req.body;
+  if (!customerId || !providerId || !sender || !message) {
+    return res.status(400).json({ success: false, message: "Missing fields" });
+  }
+  try {
+    await db.promise().query(
+      "INSERT INTO biz_chat (business_type, customer_id, provider_id, sender, message) VALUES (?,?,?,?,?)",
+      [businessType, customerId, providerId, sender, message]
+    );
+    res.json({ success: true });
+  } catch(e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
 });
 
-// POST /smart-items/stock/:id
-app.post("/smart-items/stock/:id", async (req, res) => {
-    const { stock } = req.body;
-    if (stock === undefined || stock < 0) return res.status(400).json({ success:false, message:"❌ Valid stock required." });
+// ============================================================
+// ✅ BIZ AI — shared AI endpoint with per-business system prompts
+// ============================================================
+app.post("/biz-ask-ai", async (req, res) => {
+  const { question, systemPrompt } = req.body;
+  if (!question?.trim()) return res.status(400).json({ success: false, message: "Question required" });
+
+  const prompt = systemPrompt || "You are a helpful SmartServe SME assistant for small businesses in Kenya.";
+  const models = [
+    "google/gemma-3-12b-it:free",
+    "meta-llama/llama-3.3-70b-instruct:free",
+    "google/gemma-4-31b-it:free",
+    "mistralai/devstral-small:free"
+  ];
+
+  if (!process.env.OPENROUTER_API_KEY) {
+    return res.status(500).json({ success: false, message: "AI not configured" });
+  }
+
+  for (const model of models) {
     try {
-        await db.promise().query("UPDATE smart_items SET stock=? WHERE id=?", [stock, req.params.id]);
-        res.json({ success:true, message:`✅ Stock updated to ${stock} units.` });
-    } catch(e) { res.status(500).json({ success:false, message:e.message }); }
+      const response = await axios.post(
+        "https://openrouter.ai/api/v1/chat/completions",
+        { model, messages: [{ role: "system", content: prompt }, { role: "user", content: question }] },
+        {
+          headers: {
+            Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://smartserve-smes.onrender.com",
+            "X-Title": "SmartServe SMEs AI"
+          },
+          timeout: 30000
+        }
+      );
+      const reply = response.data?.choices?.[0]?.message?.content;
+      if (reply?.trim()) return res.json({ success: true, reply, model });
+    } catch(e) { continue; }
+  }
+  res.status(503).json({ success: false, message: "AI temporarily unavailable." });
 });
 
-// DELETE /smart-items/samples/:sampleId
-app.delete("/smart-items/samples/:sampleId", async (req, res) => {
-    try {
-        await db.promise().query("DELETE FROM smart_item_samples WHERE id=?", [req.params.sampleId]);
-        res.json({ success:true, message:"✅ Sample removed." });
-    } catch(e) { res.status(500).json({ success:false, message:e.message }); }
+// ============================================================
+// ✅ BIZ ANALYTICS — per-business history stats
+// ============================================================
+app.get("/biz-analytics/:businessType/:role/:userId", async (req, res) => {
+  const { businessType, role, userId } = req.params;
+  const uid = parseInt(userId);
+  if (!uid) return res.status(400).json({ success: false, message: "Invalid userId" });
+
+  try {
+    let stats = {};
+
+    if (businessType === 'agrovet') {
+      if (role === 'customer') {
+        const [[ord]]   = await db.promise().query(`SELECT COUNT(*) AS c FROM biz_orders WHERE business_type='agrovet' AND customer_id=?`, [uid]);
+        const [[pend]]  = await db.promise().query(`SELECT COUNT(*) AS c FROM biz_orders WHERE business_type='agrovet' AND customer_id=? AND status='pending'`, [uid]);
+        const [[spent]] = await db.promise().query(`SELECT IFNULL(SUM(total_price),0) AS s FROM biz_orders WHERE business_type='agrovet' AND customer_id=?`, [uid]);
+        const [[vet]]   = await db.promise().query(`SELECT COUNT(*) AS c FROM biz_bookings WHERE business_type='agrovet' AND customer_id=?`, [uid]);
+        stats = { totalOrders: ord.c, pendingOrders: pend.c, totalSpent: spent.s, vetBookings: vet.c };
+      } else {
+        const [[ord]]  = await db.promise().query(`SELECT COUNT(*) AS c FROM biz_orders WHERE business_type='agrovet' AND provider_id=?`, [uid]);
+        const [[cust]] = await db.promise().query(`SELECT COUNT(DISTINCT customer_id) AS c FROM biz_orders WHERE business_type='agrovet' AND provider_id=?`, [uid]);
+        const [[rev]]  = await db.promise().query(`SELECT IFNULL(SUM(total_price),0) AS s FROM biz_orders WHERE business_type='agrovet' AND provider_id=? AND status='delivered'`, [uid]);
+        const [[low]]  = await db.promise().query(`SELECT COUNT(*) AS c FROM biz_products WHERE business_type='agrovet' AND provider_id=? AND stock <= 5`, [uid]);
+        stats = { totalOrders: ord.c, activeCustomers: cust.c, totalRevenue: rev.s, lowStockItems: low.c };
+      }
+    } else if (businessType === 'boutique') {
+      if (role === 'customer') {
+        const [[ord]]   = await db.promise().query(`SELECT COUNT(*) AS c FROM boutique_orders WHERE customer_id=?`, [uid]);
+        const [[fit]]   = await db.promise().query(`SELECT COUNT(*) AS c FROM boutique_fittings WHERE customer_id=?`, [uid]);
+        const [[spent]] = await db.promise().query(`SELECT IFNULL(SUM(total_price),0) AS s FROM boutique_orders WHERE customer_id=?`, [uid]);
+        const [[wish]]  = await db.promise().query(`SELECT COUNT(*) AS c FROM boutique_wishlist WHERE customer_id=?`, [uid]);
+        stats = { totalOrders: ord.c, fittingsBooked: fit.c, totalSpent: spent.s, wishlistItems: wish.c };
+      } else {
+        const [[ord]]  = await db.promise().query(`SELECT COUNT(*) AS c FROM boutique_orders WHERE provider_id=?`, [uid]);
+        const [[prod]] = await db.promise().query(`SELECT COUNT(*) AS c FROM boutique_products WHERE provider_id=?`, [uid]);
+        const [[rev]]  = await db.promise().query(`SELECT IFNULL(SUM(total_price),0) AS s FROM boutique_orders WHERE provider_id=? AND status='delivered'`, [uid]);
+        const [[fit]]  = await db.promise().query(`SELECT COUNT(*) AS c FROM boutique_fittings WHERE provider_id=? AND status='pending'`, [uid]);
+        stats = { totalOrders: ord.c, activeProducts: prod.c, totalRevenue: rev.s, pendingFittings: fit.c };
+      }
+    } else if (businessType === 'salon') {
+      if (role === 'customer') {
+        const [[appt]]  = await db.promise().query(`SELECT COUNT(*) AS c FROM biz_bookings WHERE business_type='salon' AND customer_id=?`, [uid]);
+        const [[up]]    = await db.promise().query(`SELECT COUNT(*) AS c FROM biz_bookings WHERE business_type='salon' AND customer_id=? AND booking_date >= CURDATE()`, [uid]);
+        const [[spent]] = await db.promise().query(`SELECT IFNULL(SUM(price),0) AS s FROM biz_bookings WHERE business_type='salon' AND customer_id=?`, [uid]);
+        const [[rev]]   = await db.promise().query(`SELECT COUNT(*) AS c FROM biz_reviews WHERE business_type='salon' AND customer_id=?`, [uid]);
+        stats = { totalAppointments: appt.c, upcomingAppointments: up.c, totalSpent: spent.s, reviews: rev.c };
+      } else {
+        const [[appt]]  = await db.promise().query(`SELECT COUNT(*) AS c FROM biz_bookings WHERE business_type='salon' AND provider_id=?`, [uid]);
+        const [[today]] = await db.promise().query(`SELECT COUNT(*) AS c FROM biz_bookings WHERE business_type='salon' AND provider_id=? AND booking_date=CURDATE()`, [uid]);
+        const [[rev]]   = await db.promise().query(`SELECT IFNULL(SUM(price),0) AS s FROM biz_bookings WHERE business_type='salon' AND provider_id=? AND status='completed'`, [uid]);
+        const [[rat]]   = await db.promise().query(`SELECT IFNULL(AVG(rating),0) AS a FROM biz_reviews WHERE business_type='salon' AND provider_id=?`, [uid]);
+        stats = { totalAppointments: appt.c, todayAppointments: today.c, totalRevenue: rev.s, avgRating: rat.a };
+      }
+    } else if (businessType === 'restaurant') {
+      if (role === 'customer') {
+        const [[ord]]   = await db.promise().query(`SELECT COUNT(*) AS c FROM biz_orders WHERE business_type='restaurant' AND customer_id=?`, [uid]);
+        const [[res]]   = await db.promise().query(`SELECT COUNT(*) AS c FROM biz_bookings WHERE business_type='restaurant' AND customer_id=?`, [uid]);
+        const [[spent]] = await db.promise().query(`SELECT IFNULL(SUM(total_price),0) AS s FROM biz_orders WHERE business_type='restaurant' AND customer_id=?`, [uid]);
+        const [[rev]]   = await db.promise().query(`SELECT COUNT(*) AS c FROM biz_reviews WHERE business_type='restaurant' AND customer_id=?`, [uid]);
+        stats = { totalOrders: ord.c, reservations: res.c, totalSpent: spent.s, reviews: rev.c };
+      } else {
+        const [[ord]]  = await db.promise().query(`SELECT COUNT(*) AS c FROM biz_orders WHERE business_type='restaurant' AND provider_id=?`, [uid]);
+        const [[res]]  = await db.promise().query(`SELECT COUNT(*) AS c FROM biz_bookings WHERE business_type='restaurant' AND provider_id=? AND booking_date=CURDATE()`, [uid]);
+        const [[rev]]  = await db.promise().query(`SELECT IFNULL(SUM(total_price),0) AS s FROM biz_orders WHERE business_type='restaurant' AND provider_id=? AND status='delivered'`, [uid]);
+        const [[rat]]  = await db.promise().query(`SELECT IFNULL(AVG(rating),0) AS a FROM biz_reviews WHERE business_type='restaurant' AND provider_id=?`, [uid]);
+        stats = { totalOrders: ord.c, tablesReserved: res.c, totalRevenue: rev.s, avgRating: rat.a };
+      }
+    } else if (businessType === 'hardware') {
+      if (role === 'customer') {
+        const [[ord]]   = await db.promise().query(`SELECT COUNT(*) AS c FROM biz_orders WHERE business_type='hardware' AND customer_id=?`, [uid]);
+        const [[pend]]  = await db.promise().query(`SELECT COUNT(*) AS c FROM biz_orders WHERE business_type='hardware' AND customer_id=? AND status='pending'`, [uid]);
+        const [[spent]] = await db.promise().query(`SELECT IFNULL(SUM(total_price),0) AS s FROM biz_orders WHERE business_type='hardware' AND customer_id=?`, [uid]);
+        const [[quot]]  = await db.promise().query(`SELECT COUNT(*) AS c FROM biz_quotes WHERE business_type='hardware' AND customer_id=?`, [uid]);
+        stats = { totalOrders: ord.c, pendingOrders: pend.c, totalSpent: spent.s, quotesRequested: quot.c };
+      } else {
+        const [[ord]]  = await db.promise().query(`SELECT COUNT(*) AS c FROM biz_orders WHERE business_type='hardware' AND provider_id=?`, [uid]);
+        const [[prod]] = await db.promise().query(`SELECT COUNT(*) AS c FROM biz_products WHERE business_type='hardware' AND provider_id=?`, [uid]);
+        const [[rev]]  = await db.promise().query(`SELECT IFNULL(SUM(total_price),0) AS s FROM biz_orders WHERE business_type='hardware' AND provider_id=? AND status='delivered'`, [uid]);
+        const [[low]]  = await db.promise().query(`SELECT COUNT(*) AS c FROM biz_products WHERE business_type='hardware' AND provider_id=? AND stock <= 3`, [uid]);
+        stats = { totalOrders: ord.c, activeProducts: prod.c, totalRevenue: rev.s, lowStockItems: low.c };
+      }
+    } else if (businessType === 'cyber') {
+      if (role === 'customer') {
+        const [[sess]]  = await db.promise().query(`SELECT COUNT(*) AS c FROM biz_bookings WHERE business_type='cyber' AND customer_id=?`, [uid]);
+        const [[pr]]    = await db.promise().query(`SELECT COUNT(*) AS c FROM biz_orders WHERE business_type='cyber' AND customer_id=?`, [uid]);
+        const [[spent]] = await db.promise().query(`SELECT IFNULL(SUM(price),0) AS s FROM biz_bookings WHERE business_type='cyber' AND customer_id=?`, [uid]);
+        const [[hrs]]   = await db.promise().query(`SELECT IFNULL(SUM(duration_hours),0) AS h FROM biz_bookings WHERE business_type='cyber' AND customer_id=?`, [uid]);
+        stats = { totalSessions: sess.c, totalPrints: pr.c, totalSpent: spent.s, totalHours: hrs.h };
+      } else {
+        const [[sess]] = await db.promise().query(`SELECT COUNT(*) AS c FROM biz_bookings WHERE business_type='cyber' AND provider_id=?`, [uid]);
+        const [[pcs]]  = await db.promise().query(`SELECT COUNT(*) AS c FROM biz_products WHERE business_type='cyber' AND provider_id=?`, [uid]);
+        const [[rev]]  = await db.promise().query(`SELECT IFNULL(SUM(price),0) AS s FROM biz_bookings WHERE business_type='cyber' AND provider_id=? AND status='completed'`, [uid]);
+        const [[cust]] = await db.promise().query(`SELECT COUNT(DISTINCT customer_id) AS c FROM biz_bookings WHERE business_type='cyber' AND provider_id=?`, [uid]);
+        stats = { totalSessions: sess.c, activePCs: pcs.c, totalRevenue: rev.s, totalCustomers: cust.c };
+      }
+    }
+
+    res.json({ success: true, stats });
+  } catch(e) {
+    console.error("biz-analytics error:", e.message);
+    res.json({ success: true, stats: {} });
+  }
 });
 
-// GET /smart-items/alerts
-app.get("/smart-items/alerts", async (req, res) => {
-    try {
-        const [items] = await db.promise().query("SELECT id,name,stock FROM smart_items WHERE stock<=5 ORDER BY stock ASC");
-        res.json({ success:true, alerts: items.map(i => ({
-            item:i.name, stock:i.stock,
-            type: i.stock===0 ? "OUT_OF_STOCK" : "LOW_STOCK",
-            message: i.stock===0
-                ? `🚨 URGENT: '${i.name}' is OUT OF STOCK. Customers are waiting. Restock immediately.`
-                : `⚠️ LOW STOCK: '${i.name}' has only ${i.stock} unit(s) left. Please add more stock.`
-        }))});
-    } catch(e) { res.status(500).json({ success:false, message:e.message }); }
-});
+// Shared tables for all business types (created once at startup)
+db.query(`CREATE TABLE IF NOT EXISTS biz_orders (id INT AUTO_INCREMENT PRIMARY KEY, business_type VARCHAR(50), customer_id INT, provider_id INT, item_name VARCHAR(200), quantity INT DEFAULT 1, total_price DECIMAL(10,2), status VARCHAR(50) DEFAULT 'pending', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, INDEX idx_biz_ord (business_type, customer_id, provider_id))`, e => { if(e) console.error('biz_orders:', e.message); });
+db.query(`CREATE TABLE IF NOT EXISTS biz_bookings (id INT AUTO_INCREMENT PRIMARY KEY, business_type VARCHAR(50), customer_id INT, provider_id INT, service_name VARCHAR(200), booking_date DATE, booking_time TIME, duration_hours DECIMAL(4,2) DEFAULT 1, price DECIMAL(10,2), status VARCHAR(50) DEFAULT 'pending', notes TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, INDEX idx_biz_book (business_type, customer_id, provider_id))`, e => { if(e) console.error('biz_bookings:', e.message); });
+db.query(`CREATE TABLE IF NOT EXISTS biz_products (id INT AUTO_INCREMENT PRIMARY KEY, business_type VARCHAR(50), provider_id INT, name VARCHAR(200), category VARCHAR(100), price DECIMAL(10,2), stock INT DEFAULT 0, unit VARCHAR(50), description TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, INDEX idx_biz_prod (business_type, provider_id))`, e => { if(e) console.error('biz_products:', e.message); });
+db.query(`CREATE TABLE IF NOT EXISTS biz_reviews (id INT AUTO_INCREMENT PRIMARY KEY, business_type VARCHAR(50), customer_id INT, provider_id INT, rating INT, review TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, INDEX idx_biz_rev (business_type, provider_id))`, e => { if(e) console.error('biz_reviews:', e.message); });
+db.query(`CREATE TABLE IF NOT EXISTS biz_quotes (id INT AUTO_INCREMENT PRIMARY KEY, business_type VARCHAR(50), customer_id INT, provider_id INT, description TEXT, status VARCHAR(50) DEFAULT 'pending', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`, e => { if(e) console.error('biz_quotes:', e.message); });
 
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Server running on port ${PORT}`);

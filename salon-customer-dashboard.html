@@ -43,6 +43,9 @@
     <a onclick="showTab('stylists')">👩 Our Stylists</a>
     <a onclick="showTab('gallery')">🖼️ Gallery</a>
     <a onclick="showTab('reviews')">⭐ Leave a Review</a>
+    <a onclick="showTab('chat')">💬 Chat with Salon</a>
+    <a onclick="showTab('ai-assistant')">🤖 AI Beauty Advisor</a>
+    <a onclick="showTab('analytics')">📈 My History</a>
     <a onclick="logout()">🚪 Logout</a>
   </div>
 
@@ -202,7 +205,49 @@
       localStorage.removeItem('businessType');
       window.location.replace('business-select.html');
     }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      if (user.id) window._bcaCustomerId = user.id;
+      if (user.provider_id) window._bcaProviderId = user.provider_id;
+      if (typeof bcaDashboard !== 'undefined') {
+        bcaDashboard.renderChat('chat-container', 'salon', 'customer', '#b43c78');
+        bcaDashboard.renderAI('ai-container', 'salon');
+        bcaDashboard.renderAnalytics('analytics-container', 'salon', 'customer', '#ffe0f0');
+      }
+    });
+
+    const _origShowTab = window.showTab;
+    window.showTab = function(id) {
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      const el = document.getElementById(id);
+      if (el) el.classList.add('active');
+      if (id === 'choose-provider') loadProviders();
+      if (id === 'chat' && window._bcaCustomerId && window._bcaProviderId) {
+        bcaDashboard.loadChat('chat-container', 'salon', window._bcaCustomerId, window._bcaProviderId);
+      }
+    };
   </script>
-  <script src="config.js"></script><script src="lang.js"></script>
+  <script src="config.js"></script>
+  <script src="business-chat-ai.js"></script>
+  <script src="lang.js"></script>
+
+  <div id="chat" class="tab-content">
+    <h1>💬 Chat with Your Salon</h1>
+    <p style="color:#ddd;margin-bottom:20px;">Ask about appointments, services, styling advice, or reschedule a booking.</p>
+    <div class="card"><div id="chat-container"></div></div>
+  </div>
+
+  <div id="ai-assistant" class="tab-content">
+    <h1>🤖 AI Beauty Advisor</h1>
+    <p style="color:#ddd;margin-bottom:20px;">Get personalised hairstyle, skincare, and beauty tips — powered by AI.</p>
+    <div class="card"><div id="ai-container"></div></div>
+  </div>
+
+  <div id="analytics" class="tab-content">
+    <h1>📈 My Beauty History</h1>
+    <p style="color:#ddd;margin-bottom:20px;">Track your appointments, treatments, and spending — with AI insights.</p>
+    <div class="card"><div id="analytics-container"></div></div>
+  </div>
+
 </body>
 </html>

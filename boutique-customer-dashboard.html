@@ -237,11 +237,14 @@
 
   </div>
 
+  <script src="config.js"></script>
+  <script src="lang.js"></script>
   <script>
     const BASE = window.API_BASE || 'https://smartserve-smes.onrender.com';
 
     (function() {
-      if (!localStorage.getItem('user')) window.location.replace('business-select.html');
+      const _u = JSON.parse(localStorage.getItem('user') || 'null');
+      if (!_u || _u.role !== 'customer') window.location.replace('business-select.html');
       history.replaceState(null, '', window.location.href);
     })();
 
@@ -553,13 +556,16 @@
     }
 
     function logout() {
-      localStorage.removeItem('user');
-      localStorage.removeItem('businessType');
-      localStorage.removeItem('selectedProviderId');
-      localStorage.removeItem('selectedProviderName');
-      window.location.replace('business-select.html');
+      fetch(BASE + '/logout', { method: 'POST', credentials: 'include' })
+        .catch(() => {})
+        .finally(() => {
+          localStorage.removeItem('user');
+          localStorage.removeItem('businessType');
+          localStorage.removeItem('selectedProviderId');
+          localStorage.removeItem('selectedProviderName');
+          window.location.replace('business-select.html');
+        });
     }
   </script>
-  <script src="config.js"></script><script src="lang.js"></script>
 </body>
 </html>

@@ -189,13 +189,18 @@ function siCheckItem() {
       '<button class="btn btn-gold" style="padding:10px 20px;font-size:0.85rem;margin-top:8px;" ' +
       'onclick="siStyleChosen(\'No specific style\',\'\',undefined)">Continue without selecting a style →</button></div>';
   } else {
-    row.innerHTML = item.samples.map((s, idx) =>
-      '<div class="si-sample-thumb" id="si-sthumb-' + idx + '" ' +
-      'onclick="siStyleChosen(\'' + s.description.replace(/'/g,"\\'") + '\',\'' + siBase() + s.path + '\',' + idx + ')">' +
-      '<img src="' + siBase() + s.path + '" alt="' + s.description + '" onerror="this.parentElement.style.display=\'none\'">' +
-      '<div class="si-check">✓</div>' +
-      '</div>'
-    ).join('');
+    row.innerHTML = item.samples.map((s, idx) => {
+      // Build correct image URL:
+      // - Cloudinary URLs start with https:// → use as-is
+      // - Local /uploads/ paths → prepend API base
+      const imgUrl = s.path.startsWith('http') ? s.path : (siBase() + s.path);
+      return '<div class="si-sample-thumb" id="si-sthumb-' + idx + '" ' +
+        'onclick="siStyleChosen(\'' + s.description.replace(/'/g,"\\'") + '\',\'' + imgUrl + '\',' + idx + ')">' +
+        '<img src="' + imgUrl + '" alt="' + s.description + '" ' +
+        'onerror="this.parentElement.innerHTML=\'<div style=\\\'width:100%;height:100%;background:rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;font-size:1.5rem;\\\'>👗</div>\'">' +
+        '<div class="si-check">✓</div>' +
+        '</div>';
+    }).join('');
   }
   step2.scrollIntoView({ behavior:'smooth', block:'nearest' });
 }

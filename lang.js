@@ -1,4 +1,4 @@
-/**
+node ServiceWorkerRegistration./**
  * SmartServe SMEs — Language Switcher
  * Supports: English (en) | Kiswahili (sw)
  * Usage: add data-i18n="key" to any element. Call applyLang() on page load.

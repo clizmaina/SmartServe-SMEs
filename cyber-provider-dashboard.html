@@ -47,6 +47,9 @@
     <a onclick="showTab('billing')">💰 Billing</a>
     <a onclick="showTab('clients')">👥 Clients</a>
     <a onclick="showTab('settings')">⚙️ Settings</a>
+    <a onclick="showTab('provider-chat')">💬 Chat with Client</a>
+    <a onclick="showTab('provider-ai')">🤖 AI Assistant</a>
+    <a onclick="showTab('provider-analytics')">📈 Analytics</a>
     <a onclick="logout()">🚪 Logout</a>
   </div>
 
@@ -128,12 +131,15 @@
     </div>
   </div>
 
+  <script src="config.js"></script>
+  <script src="lang.js"></script>
   <script>
     const BASE = window.API_BASE || 'https://smartserve-smes.onrender.com';
 
     // Auth guard — runs immediately on page load
     (function() {
-      if (!localStorage.getItem('user')) {
+      const _u = JSON.parse(localStorage.getItem('user') || 'null');
+      if (!_u || (_u.role !== 'designer' && _u.role !== 'provider')) {
         window.location.replace('business-select.html');
       }
       history.replaceState(null, '', window.location.href);
@@ -189,13 +195,72 @@
     }
 
     function logout() {
-      localStorage.removeItem('user');
-      localStorage.removeItem('businessType');
-      localStorage.removeItem('activeCustomerId');
-      localStorage.removeItem('activeCustomerName');
-      window.location.replace('business-select.html');
+      fetch(BASE + '/logout', { method: 'POST', credentials: 'include' })
+        .catch(() => {})
+        .finally(() => {
+          localStorage.removeItem('user');
+          localStorage.removeItem('businessType');
+          localStorage.removeItem('activeCustomerId');
+          localStorage.removeItem('activeCustomerName');
+          window.location.replace('business-select.html');
+        });
     }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      window._bcaProviderId = user.id;
+      const savedCust = localStorage.getItem('activeCustomerId');
+      if (savedCust) window._bcaCustomerId = savedCust;
+      if (typeof bcaDashboard !== 'undefined') {
+        bcaDashboard.renderChat('provider-chat-container', 'cyber', 'provider', '#00aa00');
+        bcaDashboard.renderAI('provider-ai-container', 'cyber');
+        bcaDashboard.renderAnalytics('provider-analytics-container', 'cyber', 'provider', '#00ff88');
+      }
+    });
+
+    const _origShowTabC = window.showTab;
+    window.showTab = function(id) {
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      const el = document.getElementById(id);
+      if (el) el.classList.add('active');
+      if (id === 'clients') loadCustomerQueue();
+      if (id === 'provider-chat' && window._bcaCustomerId && window._bcaProviderId) {
+        bcaDashboard.setIds(window._bcaCustomerId, window._bcaProviderId);
+        bcaDashboard.loadChat('provider-chat-container', 'cyber', window._bcaCustomerId, window._bcaProviderId);
+      }
+    };
+
+    window.serveCustomer = function(customerId, customerName, btn) {
+      activeCustomerId = customerId;
+      window._bcaCustomerId = customerId;
+      bcaDashboard.setIds(customerId, user.id);
+      localStorage.setItem('activeCustomerId', customerId);
+      localStorage.setItem('activeCustomerName', customerName);
+      const banner = document.getElementById('active-customer-banner');
+      banner.style.display = 'block';
+      banner.textContent = '🟢 NOW SERVING: ' + customerName + ' — GO TO 💬 CHAT';
+      document.querySelectorAll('[id^="serve-btn-"]').forEach(b => { b.textContent = 'Serve Now'; b.disabled = false; });
+      btn.textContent = '✅ Serving'; btn.disabled = true;
+    };
   </script>
-  <script src="config.js"></script><script src="lang.js"></script>
+
+  <div id="provider-chat" class="tab-content">
+    <h1 style="color:#00ff88;">💬 CHAT WITH CLIENT</h1>
+    <p style="color:#a0ffa0;margin-bottom:8px;">Select a client from the <strong>Clients</strong> tab and click Serve Now to unlock chat.</p>
+    <div class="card"><div id="provider-chat-container"></div></div>
+  </div>
+
+  <div id="provider-ai" class="tab-content">
+    <h1 style="color:#00ff88;">🤖 AI BUSINESS ASSISTANT</h1>
+    <p style="color:#a0ffa0;margin-bottom:20px;">Get advice on running your cyber café, pricing, service packages, and growing your business.</p>
+    <div class="card"><div id="provider-ai-container"></div></div>
+  </div>
+
+  <div id="provider-analytics" class="tab-content">
+    <h1 style="color:#00ff88;">📈 BUSINESS ANALYTICS</h1>
+    <p style="color:#a0ffa0;margin-bottom:20px;">Track your sessions, revenue, PC usage, and customers — with AI insights.</p>
+    <div class="card"><div id="provider-analytics-container"></div></div>
+  </div>
+
+  <script src="business-chat-ai.js"></script>
 </body>
 </html>

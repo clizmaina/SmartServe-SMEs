@@ -42,6 +42,9 @@
     <a onclick="showTab('vet')">🐄 Book Vet Service</a>
     <a onclick="showTab('orders')">📦 My Orders</a>
     <a onclick="showTab('advice')">💡 Farming Advice</a>
+    <a onclick="showTab('chat')">💬 Chat with Agrovet</a>
+    <a onclick="showTab('ai-assistant')">🤖 AI Assistant</a>
+    <a onclick="showTab('analytics')">📈 My History</a>
     <a onclick="logout()">🚪 Logout</a>
   </div>
 
@@ -136,12 +139,15 @@
     </div>
   </div>
 
+  <script src="config.js"></script>
+  <script src="lang.js"></script>
   <script>
     const BASE = window.API_BASE || 'https://smartserve-smes.onrender.com';
 
     // Auth guard — runs immediately on page load
     (function() {
-      if (!localStorage.getItem('user')) {
+      const _u = JSON.parse(localStorage.getItem('user') || 'null');
+      if (!_u || _u.role !== 'customer') {
         window.location.replace('business-select.html');
       }
       history.replaceState(null, '', window.location.href);
@@ -205,11 +211,64 @@
     }
 
     function logout() {
-      localStorage.removeItem('user');
-      localStorage.removeItem('businessType');
-      window.location.replace('business-select.html');
+      fetch(BASE + '/logout', { method: 'POST', credentials: 'include' })
+        .catch(() => {})
+        .finally(() => {
+          localStorage.removeItem('user');
+          localStorage.removeItem('businessType');
+          window.location.replace('business-select.html');
+        });
     }
+
+    // ── Chat + AI init ──
+    window.addEventListener('DOMContentLoaded', () => {
+      if (user.id) window._bcaCustomerId = user.id;
+      if (user.provider_id) window._bcaProviderId = user.provider_id;
+      if (typeof bcaDashboard !== 'undefined') {
+        bcaDashboard.renderChat('chat-container', 'agrovet', 'customer', '#388e3c');
+        bcaDashboard.renderAI('ai-container', 'agrovet');
+        bcaDashboard.renderAnalytics('analytics-container', 'agrovet', 'customer', '#90ee90');
+      }
+    });
+
+    const _origShowTab = window.showTab;
+    window.showTab = function(id) {
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      const el = document.getElementById(id);
+      if (el) el.classList.add('active');
+      if (id === 'choose-provider') loadProviders();
+      if (id === 'chat' && window._bcaCustomerId && window._bcaProviderId) {
+        bcaDashboard.loadChat('chat-container', 'agrovet', window._bcaCustomerId, window._bcaProviderId);
+      }
+    };
   </script>
-  <script src="config.js"></script><script src="lang.js"></script>
+
+  <!-- New tabs: Chat, AI, Analytics -->
+  <div id="chat" class="tab-content">
+    <h1>💬 Chat with Your Agrovet</h1>
+    <p style="color:#ddd;margin-bottom:20px;">Discuss orders, ask about products, and get farming support directly from your provider.</p>
+    <div class="card">
+      <div id="chat-container"></div>
+    </div>
+  </div>
+
+  <div id="ai-assistant" class="tab-content">
+    <h1>🤖 AI Farming Assistant</h1>
+    <p style="color:#ddd;margin-bottom:20px;">Get expert advice on crops, livestock, fertilisers, and more — powered by AI.</p>
+    <div class="card">
+      <div id="ai-container"></div>
+    </div>
+  </div>
+
+  <div id="analytics" class="tab-content">
+    <h1>📈 My Service History</h1>
+    <p style="color:#ddd;margin-bottom:20px;">A summary of your orders, vet bookings, and spending — with AI insights.</p>
+    <div class="card">
+      <div id="analytics-container"></div>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="business-chat-ai.js"></script>
 </body>
 </html>

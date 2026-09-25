@@ -120,6 +120,11 @@
       transform: translateX(5px);
     }
 
+    /* ── Active Tab Styling ── */
+    .sidebar a[onclick*="showTab"] {
+      transition: all 0.25s ease;
+    }
+
     .sidebar a.logout-btn {
       margin-top: auto;
       color: #ff8a9a;
@@ -571,6 +576,10 @@
       </div>
       <div class="card">
         <h2 data-i18n="d.sel.h2">🧵 Your Assigned Customers</h2>
+        <label style="color:rgba(255,255,255,0.6); font-size:0.85rem; display:block; margin-bottom:8px;">Designer (optional)</label>
+        <select id="designerSelect">
+          <option value="">— Select Designer —</option>
+        </select>
         <select id="customerSelect">
           <option value="" data-i18n="d.sel.opt">— Select a Customer —</option>
         </select>
@@ -789,16 +798,39 @@
     .sm-msg { font-size:0.78rem; margin-top:6px; min-height:16px; }
     .sm-alert-out { background:rgba(255,80,80,0.1); border:1px solid rgba(255,80,80,0.3); color:#ff8a9a; border-radius:10px; padding:12px 16px; margin-bottom:10px; font-size:0.86rem; display:flex; gap:10px; align-items:flex-start; }
     .sm-alert-low { background:rgba(251,191,36,0.08); border:1px solid rgba(251,191,36,0.3); color:#fbbf24; border-radius:10px; padding:12px 16px; margin-bottom:10px; font-size:0.86rem; display:flex; gap:10px; align-items:flex-start; }
+
+    /* ── Trends Chart Styles ── */
+    .si-trend-item { margin-bottom:20px; }
+    .si-trend-name { font-size:0.95rem; font-weight:600; color:#fff; display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+    .si-trend-row { display:grid; grid-template-columns:80px 1fr 100px 100px; gap:12px; align-items:center; padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.08); font-size:0.82rem; }
+    .si-trend-month { color:rgba(255,255,255,0.5); min-width:60px; }
+    .si-trend-bar-wrap { background:rgba(255,255,255,0.08); border-radius:4px; overflow:hidden; height:24px; }
+    .si-trend-bar-fill { height:100%; transition:width 0.3s ease; }
+    .si-trend-units { color:rgba(255,255,255,0.7); text-align:right; min-width:80px; }
+    .si-trend-rev { color:var(--gold-light); font-weight:600; text-align:right; min-width:100px; }
+
+    /* ── Top Sellers Grid ── */
+    .si-top-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:16px; }
+    .si-top-card { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:14px; padding:16px; text-align:center; }
+    .si-top-medal { font-size:2rem; display:block; margin-bottom:8px; }
+    .si-top-name { font-size:0.95rem; font-weight:600; color:#fff; margin-bottom:8px; }
+    .si-top-units { font-size:0.82rem; color:rgba(255,255,255,0.6); margin-bottom:6px; }
+    .si-top-rev { font-size:0.88rem; color:var(--gold-light); font-weight:600; }
   </style>
 
   <script>
-  // Inject Stock Manager tab into .content
-  (function() {
-    const content = document.querySelector('.content');
-    if (!content) return;
-    const div = document.createElement('div');
-    div.id = 'stock-manager';
-    div.className = 'tab-content';
+  // ── STOCK MANAGER TAB INJECTION ──
+  // Inject Stock Manager tab into .content (only once)
+  if (!window._stockManagerInjected) {
+    window._stockManagerInjected = true;
+    (function() {
+      const content = document.querySelector('.content');
+      if (!content) return;
+      const existing = document.getElementById('stock-manager');
+      if (existing) return; // Already injected
+      const div = document.createElement('div');
+      div.id = 'stock-manager';
+      div.className = 'tab-content';
     div.innerHTML = `
       <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;">
         <div>
@@ -836,7 +868,8 @@
       </div>
     `;
     content.appendChild(div);
-  })();
+    })();
+  }
 
   function smBase() { return window.API_BASE || 'https://smartserve-smes.onrender.com'; }
 
@@ -883,9 +916,10 @@
       const sc    = isOut ? '#ff8a9a' : isLow ? '#fbbf24' : '#4ade80';
       const st    = isOut ? 'OUT OF STOCK' : isLow ? 'LOW — ' + item.stock + ' left' : item.stock + ' in stock';
       const thumbs = item.samples.length
-        ? item.samples.map(s =>
-            '<img class="sm-thumb" src="' + smBase() + s.path + '" title="' + s.description + '" onerror="this.style.display=\'none\'">'
-          ).join('')
+        ? item.samples.map(s => {
+            const url = s.path.startsWith('http') ? s.path : (smBase() + s.path);
+            return '<img class="sm-thumb" src="' + url + '" title="' + s.description + '" onerror="this.style.display=\'none\'">';
+          }).join('')
         : '<span style="font-size:0.76rem;color:rgba(255,255,255,0.3);">No samples yet</span>';
       const uploadRow = item.samples.length < 10
         ? '<div class="sm-upload-row">' +
@@ -1096,12 +1130,6 @@
     } catch(e) { alert('❌ Could not update order status.'); }
   }
 
-  // ── Hook showTab ──────────────────────────────────────────────────────
-  const _smOrigShow = window.showTab;
-  window.showTab = function(tabId) {
-    if (_smOrigShow) _smOrigShow(tabId);
-    if (tabId === 'stock-manager') smLoad();
-  };
   </script>
   <script src="config.js"></script>
   <script src="designer-dashboard.js"></script>
