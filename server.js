@@ -111,7 +111,9 @@ if (process.env.MYSQL_PUBLIC_URL) {
         ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
         waitForConnections: true,
         connectionLimit: 10,
-        queueLimit: 0
+        queueLimit: 0,
+        enableKeepAlive: true,
+        keepAliveInitialDelay: 10000
     };
     console.log("🔗 Using DB_HOST:", dbConfig.host);
 }
@@ -129,6 +131,13 @@ db.getConnection((err, connection) => {
         connection.release();
     }
 });
+
+// Keep-alive ping every 30 seconds to prevent Clever Cloud / free-tier idle disconnects
+setInterval(() => {
+    db.query('SELECT 1', (err) => {
+        if (err) console.warn('⚠️  Keep-alive ping failed:', err.message);
+    });
+}, 30000);
 
 // ✅ Run DB migrations — create tables if they don't exist, then alter
 // Create users table first (required by all other tables)
