@@ -2,7 +2,7 @@
 const cors = require("cors");
 const express = require("express");
 const mysql = require("mysql2");
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 const multer = require('multer');
 const path = require('path');
 const nodemailer = require('nodemailer');
@@ -2191,38 +2191,6 @@ app.put("/smart-items/orders/:id/status", async (req, res) => {
         res.json({ success:true, message:"✅ Order status updated." });
     } catch(e) { res.status(500).json({ success:false, message:e.message }); }
 });
-
-// Seed default items if empty
-db.query("SELECT COUNT(*) AS cnt FROM smart_items", (err, rows) => {
-    if (err || rows[0].cnt > 0) return;
-    const defaults = [
-        ["Dress",   2500, 0],
-        ["Trouser", 1500, 3],
-        ["Shirt",   1200, 12],
-        ["Skirt",   1100, 0],
-        ["Coat",    3500, 7]
-    ];
-    defaults.forEach(([name, price, stock]) => {
-        db.query("INSERT IGNORE INTO smart_items (name,price,stock) VALUES (?,?,?)", [name,price,stock]);
-    });
-    const months = [["Dec","2025-12"],["Jan","2026-01"],["Feb","2026-02"],["Mar","2026-03"],["Apr","2026-04"],["May","2026-05"]];
-    const sales  = { Dress:[80,65,45,90,110,95], Trouser:[40,42,38,45,50,55], Shirt:[60,55,48,62,58,75], Skirt:[25,22,30,48,60,72], Coat:[90,85,70,30,15,10] };
-    const prices = { Dress:2500, Trouser:1500, Shirt:1200, Skirt:1100, Coat:3500 };
-    setTimeout(() => {
-        db.query("SELECT id,name FROM smart_items", (e2, items) => {
-            if (e2 || !items) return;
-            items.forEach(item => {
-                (sales[item.name]||[]).forEach((u,i) => {
-                    db.query("INSERT IGNORE INTO smart_item_sales (item_id,month_label,month_year,units_sold,revenue) VALUES (?,?,?,?,?)",
-                        [item.id, months[i][0], months[i][1], u, u*(prices[item.name]||0)]);
-                });
-            });
-        });
-    }, 1500);
-});
-
-
-
 
 
 
